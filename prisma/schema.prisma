@@ -1,0 +1,775 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlatformRole {
+  ROOT
+  PLATFORM_ADMIN
+}
+
+enum TenantRole {
+  TENANT_OWNER
+  TENANT_ADMIN
+  FARM_MANAGER
+  ACCOUNTING
+  OPERATOR
+}
+
+enum TenantStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum FarmStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  ACTIVE
+  INACTIVE
+}
+
+enum VerificationStatus {
+  PENDING
+  IN_REVIEW
+  REQUIRES_FIX
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationSubjectType {
+  TENANT
+  FARM
+}
+
+enum VerificationDocumentType {
+  IDENTITY
+  COMPANY
+  FARM_DOCUMENT
+  INTI
+  FARM_PHOTO
+}
+
+enum FileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum FileCategory {
+  IMAGE
+  DOCUMENT
+  SPREADSHEET
+  PDF
+  ARCHIVE
+  OTHER
+}
+
+enum FileUsage {
+  VERIFICATION_DOCUMENT
+  LIVESTOCK_IMAGE
+  LISTING_IMAGE
+  IMPORT_FILE
+  MANUAL_FILE
+  REPORT_FILE
+  FARM_PRIMARY_IMAGE
+  FARM_LOGO
+  OPERATION_SHEET
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  ARCHIVED
+}
+
+enum FieldWorkStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AnimalSex {
+  FEMALE
+  MALE
+  UNKNOWN
+}
+
+enum AnimalProductiveLine {
+  BEEF
+  DAIRY
+  DUAL_PURPOSE
+  BREEDING
+  WORK
+  OTHER
+}
+
+enum AnimalHealthStatus {
+  HEALTHY
+  UNDER_OBSERVATION
+  SICK
+  RECOVERING
+  QUARANTINE
+}
+
+enum AnimalReproductiveStatus {
+  OPEN
+  PREGNANT
+  LACTATING
+  BREEDING_MALE
+  CASTRATED
+  YOUNG
+  UNKNOWN
+}
+
+enum AnimalEventType {
+  BIRTH
+  ENTRY
+  TRANSFER
+  WEIGHING
+  VACCINATION
+  TREATMENT
+  REPRODUCTION
+  SALE
+  DEATH
+  NOTE
+  OTHER
+}
+
+enum LivestockOperationStatus {
+  DRAFT
+  SHEETS_READY
+  RESULTS_CAPTURED
+  APPLIED
+  CANCELLED
+}
+
+enum LivestockOperationType {
+  WEIGHING
+  VACCINATION
+  DEWORMING
+  COUNT
+  HEALTH_REVIEW
+  CLASSIFICATION
+  TREATMENT
+}
+
+enum LivestockOperationAnimalStatus {
+  PENDING
+  CAPTURED
+  SKIPPED
+  APPLIED
+}
+
+enum LivestockOperationSheetType {
+  PDF
+  EXCEL
+  RESULTS_UPLOAD
+}
+
+enum LivestockOperationSheetSource {
+  GENERATED
+  IMPORTED
+  MANUAL
+}
+
+enum OperationAnimalGeneralStatus {
+  NOT_CHECKED
+  GOOD
+  UNDER_OBSERVATION
+  SICK
+  CRITICAL
+}
+
+enum OperationWorkerRole {
+  SUPERVISOR
+  OPERATOR
+  VETERINARY
+  RECORDER
+  DRIVER
+  OTHER
+}
+
+model User {
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String                    @unique
+  emailVerified            DateTime?
+  image                    String?
+  hashedPassword           String?
+  platformRole             PlatformRole?
+  defaultTenantId          String?
+  defaultTenant            Tenant?                   @relation("DefaultTenant", fields: [defaultTenantId], references: [id], onDelete: SetNull)
+  accounts                 Account[]
+  sessions                 Session[]
+  memberships              TenantMembership[]
+  accessAudits             AccessAudit[]
+  auditLogs                AuditLog[]
+  reviewedProfiles         VerificationProfile[]     @relation("VerificationReviewer")
+  verificationDocs         VerificationDocument[]    @relation("VerificationDocumentUploader")
+  verificationLogs         VerificationAudit[]
+  uploadedFiles            FileStorage[]
+  animalEvents             AnimalEvent[]             @relation("AnimalEventActor")
+  animalWeightRecords      AnimalWeightRecord[]      @relation("AnimalWeightRecorder")
+  animalVaccinationRecords AnimalVaccinationRecord[] @relation("AnimalVaccinationRecorder")
+  animalTreatmentRecords   AnimalTreatmentRecord[]   @relation("AnimalTreatmentRecorder")
+  createdLivestockOperations LivestockOperation[]    @relation("OperationCreator")
+  generatedOperationSheets  LivestockOperationSheet[] @relation("OperationSheetGenerator")
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+}
+
+model Tenant {
+  id                   String                    @id @default(cuid())
+  name                 String
+  slug                 String                    @unique
+  status               TenantStatus              @default(PENDING_VERIFICATION)
+  legalName            String?
+  isVerified           Boolean                   @default(false)
+  defaultUsers         User[]                    @relation("DefaultTenant")
+  memberships          TenantMembership[]
+  farms                Farm[]
+  employees            Employee[]
+  fieldWorkOrders      FieldWorkOrder[]
+  marketplaceItems     MarketplaceListing[]
+  accessAudits         AccessAudit[]
+  auditLogs            AuditLog[]
+  verificationProfiles VerificationProfile[]
+  verificationDocs     VerificationDocument[]
+  verificationLogs     VerificationAudit[]
+  files                FileStorage[]
+  species              Species[]
+  breeds               Breed[]
+  animals              Animal[]
+  animalEvents         AnimalEvent[]
+  animalWeightRecords  AnimalWeightRecord[]
+  animalVaccinations   AnimalVaccinationRecord[]
+  animalTreatments     AnimalTreatmentRecord[]
+  livestockOperations  LivestockOperation[]
+  operationAnimals     LivestockOperationAnimal[]
+  operationSheets      LivestockOperationSheet[]
+  operationExpenses    OperationExpense[]
+  operationWorkers     OperationWorker[]
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+}
+
+model TenantMembership {
+  id         String     @id @default(cuid())
+  tenantId   String
+  userId     String
+  role       TenantRole @default(OPERATOR)
+  isDefault  Boolean    @default(false)
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([tenantId, userId])
+  @@index([userId, isDefault])
+}
+
+model AccessAudit {
+  id         String   @id @default(cuid())
+  userId     String?
+  tenantId   String?
+  email      String?
+  action     String
+  provider   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([email, createdAt])
+}
+
+model FileStorage {
+  id                    String                 @id @default(cuid())
+  tenantId              String?
+  uploadedById          String?
+  usage                 FileUsage
+  category              FileCategory
+  visibility            FileVisibility         @default(PRIVATE)
+  entityType            String?
+  entityId              String?
+  label                 String?
+  originalName          String
+  storageName           String
+  path                  String                 @unique
+  url                   String
+  mimeType              String
+  size                  Int
+  metadata              Json?
+  tenant                Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  uploadedBy            User?                  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  verificationDocuments VerificationDocument[]
+  farmPrimaryImages     Farm[]                 @relation("FarmPrimaryImage")
+  farmLogos             Farm[]                 @relation("FarmLogo")
+  operationSheets       LivestockOperationSheet[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([tenantId, usage])
+  @@index([entityType, entityId])
+}
+
+model Farm {
+  id                  String               @id @default(cuid())
+  tenantId            String
+  name                String
+  description         String?
+  location            String?
+  latitude            Decimal?             @db.Decimal(10, 7)
+  longitude           Decimal?             @db.Decimal(10, 7)
+  primaryImageUrl     String?
+  primaryImageFileId  String?
+  primaryImageFile    FileStorage?         @relation("FarmPrimaryImage", fields: [primaryImageFileId], references: [id], onDelete: SetNull)
+  logoUrl             String?
+  logoFileId          String?
+  logoFile            FileStorage?         @relation("FarmLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
+  hectares            Decimal?             @db.Decimal(12, 2)
+  status              FarmStatus           @default(DRAFT)
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  verificationProfile VerificationProfile?
+  verificationDocs    VerificationDocument[]
+  animals             Animal[]
+  livestockOperations LivestockOperation[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model VerificationProfile {
+  id            String                  @id @default(cuid())
+  tenantId      String
+  farmId        String?                 @unique
+  subjectType   VerificationSubjectType
+  subjectId     String
+  status        VerificationStatus      @default(PENDING)
+  notes         String?
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  reviewedById  String?
+  tenant        Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  farm          Farm?                   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  reviewedBy    User?                   @relation("VerificationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  documents     VerificationDocument[]
+  audits        VerificationAudit[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@unique([tenantId, subjectType, subjectId])
+  @@index([tenantId, status])
+}
+
+model VerificationDocument {
+  id           String                   @id @default(cuid())
+  tenantId     String
+  profileId    String
+  farmId       String?
+  fileId       String?
+  type         VerificationDocumentType
+  label        String
+  fileName     String
+  blobUrl      String
+  blobPath     String
+  contentType  String
+  size         Int
+  uploadedById String?
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile      VerificationProfile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  farm         Farm?                    @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  file         FileStorage?             @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  uploadedBy   User?                    @relation("VerificationDocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime                 @default(now())
+
+  @@index([tenantId, type])
+  @@index([profileId, type])
+}
+
+model VerificationAudit {
+  id          String              @id @default(cuid())
+  tenantId    String
+  profileId   String
+  actorUserId String?
+  action      String
+  statusFrom  VerificationStatus?
+  statusTo    VerificationStatus?
+  comment     String?
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile     VerificationProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  actor       User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model Species {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  code      String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  breeds    Breed[]
+  animals   Animal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId, name])
+}
+
+model Breed {
+  id        String   @id @default(cuid())
+  tenantId  String
+  speciesId String
+  name      String
+  code      String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  species   Species  @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+  animals   Animal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, speciesId, name])
+  @@index([tenantId, name])
+}
+
+model Animal {
+  id                  String                   @id @default(cuid())
+  tenantId            String
+  speciesId           String
+  breedId             String?
+  farmId              String
+  fatherId            String?
+  motherId            String?
+  internalCode        String
+  visualIdentification String?
+  chipCode            String?
+  sex                 AnimalSex               @default(UNKNOWN)
+  birthDate           DateTime?
+  estimatedAgeMonths  Int?
+  lotOrZone           String?
+  productiveLine      AnimalProductiveLine    @default(OTHER)
+  initialWeightKg     Decimal?                @db.Decimal(10, 2)
+  currentWeightKg     Decimal?                @db.Decimal(10, 2)
+  healthStatus        AnimalHealthStatus      @default(HEALTHY)
+  reproductiveStatus  AnimalReproductiveStatus @default(UNKNOWN)
+  origin              String?
+  notes               String?
+  tenant              Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  species             Species                 @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+  breed               Breed?                  @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  farm                Farm                    @relation(fields: [farmId], references: [id], onDelete: Restrict)
+  father              Animal?                 @relation("AnimalFather", fields: [fatherId], references: [id], onDelete: SetNull)
+  mother              Animal?                 @relation("AnimalMother", fields: [motherId], references: [id], onDelete: SetNull)
+  fatherChildren      Animal[]                @relation("AnimalFather")
+  motherChildren      Animal[]                @relation("AnimalMother")
+  events              AnimalEvent[]
+  weightRecords       AnimalWeightRecord[]
+  vaccinationRecords  AnimalVaccinationRecord[]
+  treatmentRecords    AnimalTreatmentRecord[]
+  operationRows       LivestockOperationAnimal[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@unique([tenantId, internalCode])
+  @@unique([tenantId, chipCode])
+  @@index([tenantId, farmId])
+  @@index([tenantId, breedId])
+  @@index([tenantId, healthStatus])
+}
+
+model AnimalEvent {
+  id          String          @id @default(cuid())
+  tenantId    String
+  animalId    String
+  actorUserId String?
+  eventType   AnimalEventType
+  title       String
+  description String?
+  eventDate   DateTime
+  metadata    Json?
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  actor       User?           @relation("AnimalEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([tenantId, animalId, eventDate])
+}
+
+model AnimalWeightRecord {
+  id           String    @id @default(cuid())
+  tenantId     String
+  animalId     String
+  recordedById String?
+  weightKg     Decimal   @db.Decimal(10, 2)
+  recordedAt   DateTime
+  note         String?
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  animal       Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  recordedBy   User?     @relation("AnimalWeightRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId, animalId, recordedAt])
+}
+
+model AnimalVaccinationRecord {
+  id           String    @id @default(cuid())
+  tenantId     String
+  animalId     String
+  recordedById String?
+  vaccineName  String
+  appliedAt    DateTime
+  dose         String?
+  batch        String?
+  nextDueAt    DateTime?
+  note         String?
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  animal       Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  recordedBy   User?     @relation("AnimalVaccinationRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId, animalId, appliedAt])
+}
+
+model AnimalTreatmentRecord {
+  id              String    @id @default(cuid())
+  tenantId        String
+  animalId        String
+  recordedById    String?
+  treatmentName   String
+  appliedAt       DateTime
+  diagnosis       String?
+  medicine        String?
+  dose            String?
+  withdrawalUntil DateTime?
+  note            String?
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  animal          Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  recordedBy      User?     @relation("AnimalTreatmentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId, animalId, appliedAt])
+}
+
+model LivestockOperation {
+  id                 String                    @id @default(cuid())
+  tenantId           String
+  farmId             String
+  createdById        String?
+  title              String
+  operationDate      DateTime
+  status             LivestockOperationStatus @default(DRAFT)
+  plannedTypes       LivestockOperationType[]
+  includeAllFarmAnimals Boolean               @default(false)
+  notes              String?
+  resultsAppliedAt   DateTime?
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  farm               Farm                     @relation(fields: [farmId], references: [id], onDelete: Restrict)
+  createdBy          User?                    @relation("OperationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  animals            LivestockOperationAnimal[]
+  sheets             LivestockOperationSheet[]
+  expenses           OperationExpense[]
+  workers            OperationWorker[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, operationDate])
+  @@index([farmId, operationDate])
+}
+
+model LivestockOperationAnimal {
+  id                         String                         @id @default(cuid())
+  tenantId                   String
+  operationId                String
+  animalId                   String
+  status                     LivestockOperationAnimalStatus @default(PENDING)
+  internalCodeSnapshot       String
+  visualIdentificationSnapshot String?
+  lotOrZoneSnapshot          String?
+  weightKg                   Decimal?                       @db.Decimal(10, 2)
+  vaccineName                String?
+  dewormingName              String?
+  treatmentName              String?
+  observations               String?
+  generalStatus              OperationAnimalGeneralStatus   @default(NOT_CHECKED)
+  appliedToAnimalHistory     Boolean                        @default(false)
+  capturedAt                 DateTime?
+  appliedAt                  DateTime?
+  tenant                     Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operation                  LivestockOperation             @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  animal                     Animal                         @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+
+  @@unique([operationId, animalId])
+  @@index([tenantId, status])
+  @@index([operationId, status])
+}
+
+model LivestockOperationSheet {
+  id            String                       @id @default(cuid())
+  tenantId      String
+  operationId   String
+  fileId        String?
+  generatedById String?
+  type          LivestockOperationSheetType
+  source        LivestockOperationSheetSource
+  label         String
+  version       Int                          @default(1)
+  blobUrl       String?
+  blobPath      String?
+  contentType   String?
+  size          Int?
+  tenant        Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operation     LivestockOperation           @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  file          FileStorage?                 @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  generatedBy   User?                        @relation("OperationSheetGenerator", fields: [generatedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime                     @default(now())
+
+  @@index([tenantId, type])
+  @@index([operationId, type, createdAt])
+}
+
+model OperationExpense {
+  id          String    @id @default(cuid())
+  tenantId    String
+  operationId String
+  label       String
+  amount      Decimal   @db.Decimal(12, 2)
+  notes       String?
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operation   LivestockOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([operationId, createdAt])
+}
+
+model OperationWorker {
+  id          String             @id @default(cuid())
+  tenantId    String
+  operationId String
+  employeeId  String?
+  fullName    String
+  role        OperationWorkerRole @default(OPERATOR)
+  notes       String?
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operation   LivestockOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  employee    Employee?          @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([operationId, createdAt])
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  tenantId   String
+  fullName   String
+  email      String?
+  documentId String?
+  active     Boolean  @default(true)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operationAssignments OperationWorker[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, active])
+}
+
+model FieldWorkOrder {
+  id          String          @id @default(cuid())
+  tenantId    String
+  title       String
+  status      FieldWorkStatus @default(DRAFT)
+  scheduledAt DateTime?
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model MarketplaceListing {
+  id        String        @id @default(cuid())
+  tenantId  String
+  title     String
+  slug      String
+  status    ListingStatus @default(DRAFT)
+  price     Decimal?      @db.Decimal(12, 2)
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  actorUserId String?
+  entityType  String
+  entityId    String
+  action      String
+  metadata    Json?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
