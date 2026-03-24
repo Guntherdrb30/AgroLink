@@ -75,3 +75,56 @@ body {
   margin-inline: auto;
   max-width: 1280px;
 }
+
+.animate-enter-up {
+  animation: enter-up 0.8s ease both;
+}
+
+.animate-enter-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.animate-enter-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.animate-enter-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.animate-float-soft {
+  animation: float-soft 6s ease-in-out infinite;
+}
+
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-enter-up,
+  .animate-enter-delay-1,
+  .animate-enter-delay-2,
+  .animate-enter-delay-3,
+  .animate-float-soft {
+    animation: none !important;
+  }
+}

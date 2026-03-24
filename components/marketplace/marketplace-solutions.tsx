@@ -2,20 +2,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const blocks = [
   {
-    title: "Auth y acceso",
-    detail: "Layouts separados, registro, login, Google adicional y recuperacion preparada.",
+    title: "Fincas verificadas",
+    detail:
+      "Perfiles documentales, activos visuales y contexto legal para abrir operacion completa con respaldo.",
   },
   {
-    title: "Dashboard SaaS",
-    detail: "Sidebar, header, tenant switcher y espacio base para modulos operativos.",
+    title: "Ganado con trazabilidad",
+    detail:
+      "Fichas maestras por animal, peso, sanidad, genealogia y cronologia operacional consolidada.",
   },
   {
-    title: "PWA institucional",
-    detail: "Manifest, metadata, iconos y registro del service worker ya integrados.",
+    title: "Jornadas de control",
+    detail:
+      "Planillas oficiales PDF y Excel, reimportacion de resultados y captura rapida por codigo o imagen.",
   },
   {
-    title: "Contacto comercial",
-    detail: "Canal institucional de WhatsApp visible en header y accion flotante.",
+    title: "Marketplace institucional",
+    detail:
+      "Una cara publica sobria y confiable para mostrar la operacion y activar conversaciones comerciales.",
   },
 ];
 
@@ -23,7 +27,10 @@ export function MarketplaceSolutions() {
   return (
     <div className="grid gap-5 md:grid-cols-2">
       {blocks.map((block) => (
-        <Card key={block.title} className="border-border bg-card shadow-sm">
+        <Card
+          key={block.title}
+          className="border-border/70 bg-[linear-gradient(180deg,#ffffff_0%,#fafcfd_100%)] shadow-[0_16px_40px_rgba(31,41,51,0.04)]"
+        >
           <CardHeader>
             <CardTitle className="text-2xl">{block.title}</CardTitle>
           </CardHeader>

@@ -1,30 +1,38 @@
+import { MarketplaceCommercialCta } from "@/components/marketplace/marketplace-commercial-cta";
 import { MarketplaceHero } from "@/components/marketplace/marketplace-hero";
 import { MarketplaceMetrics } from "@/components/marketplace/marketplace-metrics";
 import { MarketplacePreview } from "@/components/marketplace/marketplace-preview";
 import { MarketplaceSolutions } from "@/components/marketplace/marketplace-solutions";
+import { MarketplaceTestimonials } from "@/components/marketplace/marketplace-testimonials";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default function PublicHomePage() {
   return (
-    <div className="space-y-16 pb-20">
+    <div className="space-y-18 pb-24">
       <MarketplaceHero />
       <MarketplaceMetrics />
+
       <section id="marketplace" className="container space-y-8 px-6">
         <PageHeader
-          eyebrow="Marketplace"
-          title="Una home pensada para publicar, descubrir y convertir."
-          description="La capa publica combina confianza institucional, fichas verificadas y contacto comercial listo para WhatsApp."
+          eyebrow="Como funciona"
+          title="Una narrativa publica que explica el sistema sin abrumar al usuario."
+          description="La home debe transmitir orden, respaldo y claridad comercial desde el primer scroll. Por eso AgroLynk se presenta como un flujo visible: verificar, operar y crecer."
         />
         <MarketplacePreview />
       </section>
+
+      <MarketplaceTestimonials />
+
       <section id="producto" className="container space-y-8 px-6">
         <PageHeader
-          eyebrow="Producto"
-          title="La experiencia privada del SaaS queda alineada con la operacion real."
-          description="Desde el inicio la interfaz separa acceso, dashboard y marketplace para escalar producto sin rehacer navegacion."
+          eyebrow="Modulos clave"
+          title="Una plataforma pensada para el negocio agropecuario real."
+          description="La base publica ya deja claro que el sistema no es solo una landing comercial: es una herramienta completa para controlar operacion, datos y confianza de mercado."
         />
         <MarketplaceSolutions />
       </section>
+
+      <MarketplaceCommercialCta />
     </div>
   );
 }
