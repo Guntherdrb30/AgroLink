@@ -22,7 +22,7 @@ export default async function FarmsPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Fincas"
-        title="Gestiona la base maestra de fincas del tenant."
+        title="Gestiona la base maestra de fincas de la empresa."
         description="Este modulo crea fincas, prepara sus activos visuales y conecta el perfil documental requerido para verificacion."
       />
       <Card>

@@ -20,9 +20,9 @@ export function ResetPasswordForm({
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Recovery
+          Recuperacion
         </p>
-        <CardTitle className="text-3xl">Set a new password</CardTitle>
+        <CardTitle className="text-3xl">Definir nueva contrasena</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={resetPasswordAction} className="space-y-5">
@@ -30,13 +30,13 @@ export function ResetPasswordForm({
           <input name="token" type="hidden" value={token ?? ""} />
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="password">
-              New password
+              Nueva contrasena
             </label>
             <Input id="password" name="password" type="password" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="confirmPassword">
-              Confirm password
+              Confirmar contrasena
             </label>
             <Input
               id="confirmPassword"
@@ -51,11 +51,11 @@ export function ResetPasswordForm({
             </p>
           ) : null}
           <Button className="w-full" type="submit">
-            Update password
+            Actualizar contrasena
           </Button>
         </form>
         <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary">
-          Back to login
+          Volver al acceso
         </Link>
       </CardContent>
     </Card>

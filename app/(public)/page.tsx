@@ -15,8 +15,8 @@ export default function PublicHomePage() {
       <section id="marketplace" className="container space-y-8 px-6">
         <PageHeader
           eyebrow="Como funciona"
-          title="Una narrativa publica que explica el sistema sin abrumar al usuario."
-          description="La home debe transmitir orden, respaldo y claridad comercial desde el primer scroll. Por eso AgroLynk se presenta como un flujo visible: verificar, operar y crecer."
+          title="Una portada publica que explica el sistema sin abrumar al usuario."
+          description="La home debe transmitir orden, respaldo y claridad comercial desde el primer recorrido. Por eso AgroLynk se presenta como un flujo visible: verificar, operar y crecer."
         />
         <MarketplacePreview />
       </section>
@@ -27,7 +27,7 @@ export default function PublicHomePage() {
         <PageHeader
           eyebrow="Modulos clave"
           title="Una plataforma pensada para el negocio agropecuario real."
-          description="La base publica ya deja claro que el sistema no es solo una landing comercial: es una herramienta completa para controlar operacion, datos y confianza de mercado."
+          description="La base publica ya deja claro que el sistema no es solo una pagina comercial: es una herramienta completa para controlar operacion, datos y confianza de mercado."
         />
         <MarketplaceSolutions />
       </section>

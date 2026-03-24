@@ -20,9 +20,9 @@ export function LoginForm({
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Access
+          Acceso
         </p>
-        <CardTitle className="text-3xl">Sign in to AgroLynk</CardTitle>
+        <CardTitle className="text-3xl">Ingresa a AgroLynk</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={authenticateAction} className="space-y-5">
@@ -41,7 +41,7 @@ export function LoginForm({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="password">
-              Password
+              Contrasena
             </label>
             <Input
               id="password"
@@ -62,7 +62,7 @@ export function LoginForm({
             </p>
           ) : null}
           <Button className="w-full" type="submit">
-            Sign in
+            Ingresar
           </Button>
           <Button
             className="w-full"
@@ -71,15 +71,15 @@ export function LoginForm({
             name="provider"
             value="google"
           >
-            Continue with Google
+            Continuar con Google
           </Button>
         </form>
         <div className="mt-5 flex items-center justify-between text-sm">
           <Link href="/forgot-password" className="font-medium text-primary">
-            Forgot password
+            Olvide mi contrasena
           </Link>
           <Link href="/register" className="font-medium text-primary">
-            Create account
+            Crear cuenta
           </Link>
         </div>
       </CardContent>

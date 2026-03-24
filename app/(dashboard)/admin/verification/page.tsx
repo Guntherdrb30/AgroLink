@@ -19,7 +19,7 @@ export default async function AdminVerificationPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Admin review"
+        eyebrow="Revision administrativa"
         title="Revision documental de cuentas y fincas"
         description="La plataforma aprueba, solicita correcciones o rechaza expedientes desde esta cola centralizada."
       />

@@ -72,7 +72,7 @@ export function AnimalList({ animals }: AnimalListProps) {
       <Card>
         <CardContent className="p-6">
           <p className="text-sm text-muted-foreground">
-            Aun no hay animales registrados en este tenant.
+            Aun no hay animales registrados en esta empresa.
           </p>
         </CardContent>
       </Card>

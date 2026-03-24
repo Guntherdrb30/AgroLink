@@ -9,12 +9,12 @@ export default function ForbiddenPage() {
         <p className="text-sm font-medium uppercase tracking-[0.3em] text-muted-foreground">
           AgroLynk
         </p>
-        <h1 className="text-4xl font-semibold text-balance">Access denied.</h1>
+        <h1 className="text-4xl font-semibold text-balance">Acceso denegado.</h1>
         <p className="text-muted-foreground">
-          Your account is authenticated but does not have permission for this action.
+          Tu cuenta esta autenticada, pero no tiene permisos para realizar esta accion.
         </p>
         <Button asChild>
-          <Link href="/dashboard">Go to dashboard</Link>
+          <Link href="/dashboard">Ir al panel</Link>
         </Button>
       </div>
     </main>

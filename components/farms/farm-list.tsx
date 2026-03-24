@@ -21,7 +21,7 @@ export function FarmList({ farms }: FarmListProps) {
       <Card>
         <CardContent className="p-6">
           <p className="text-sm text-muted-foreground">
-            Aun no hay fincas registradas para este tenant.
+            Aun no hay fincas registradas para esta empresa.
           </p>
         </CardContent>
       </Card>

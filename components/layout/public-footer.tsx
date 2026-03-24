@@ -5,7 +5,7 @@ export function PublicFooter() {
         <div className="space-y-3">
           <p className="text-lg font-semibold">AgroLynk</p>
           <p className="max-w-lg text-sm leading-7 text-muted-foreground">
-            Plataforma SaaS multitenant para fincas, marketplace verificado,
+            Plataforma SaaS multiempresa para fincas, mercado verificado,
             operacion de campo y gestion agropecuaria corporativa.
           </p>
           <p className="text-sm text-muted-foreground">
@@ -16,8 +16,8 @@ export function PublicFooter() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Producto
           </p>
-          <p className="text-sm text-foreground">Dashboard SaaS</p>
-          <p className="text-sm text-foreground">Marketplace publico</p>
+          <p className="text-sm text-foreground">Panel SaaS</p>
+          <p className="text-sm text-foreground">Mercado publico</p>
           <p className="text-sm text-foreground">PWA preparada</p>
         </div>
         <div className="space-y-3">

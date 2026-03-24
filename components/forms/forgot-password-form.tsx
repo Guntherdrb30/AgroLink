@@ -18,9 +18,9 @@ export function ForgotPasswordForm({
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Recovery
+          Recuperacion
         </p>
-        <CardTitle className="text-3xl">Prepare password reset</CardTitle>
+        <CardTitle className="text-3xl">Preparar cambio de contrasena</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={forgotPasswordAction} className="space-y-5">
@@ -41,14 +41,14 @@ export function ForgotPasswordForm({
             </p>
           ) : null}
           <Button className="w-full" type="submit">
-            Generate reset flow
+            Generar enlace de cambio
           </Button>
         </form>
         <p className="mt-5 text-sm text-muted-foreground">
-          In development the reset URL is written to the terminal. Email delivery can be connected later.
+          En esta etapa el enlace de recuperacion se imprime en la terminal. El envio por correo puede conectarse despues.
         </p>
         <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary">
-          Back to login
+          Volver al acceso
         </Link>
       </CardContent>
     </Card>

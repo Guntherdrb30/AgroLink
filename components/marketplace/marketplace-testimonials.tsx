@@ -11,7 +11,7 @@ const trustSignals = [
   {
     icon: Users,
     title: "Pensado para equipos",
-    detail: "Dueños, administradores y operadores trabajando con el mismo criterio.",
+    detail: "Duenos, administradores y operadores trabajando con el mismo criterio.",
   },
   {
     icon: Sparkles,
@@ -37,7 +37,7 @@ const testimonials = [
     quote:
       "La capa publica transmite mas confianza que una pagina promocional tradicional porque conecta evidencia, estructura y capacidad operativa.",
     name: "Gestion comercial agropecuaria",
-    role: "Marketplace y relacion con clientes",
+    role: "Mercado y relacion con clientes",
   },
 ];
 

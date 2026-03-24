@@ -17,7 +17,7 @@ const blocks = [
       "Planillas oficiales PDF y Excel, reimportacion de resultados y captura rapida por codigo o imagen.",
   },
   {
-    title: "Marketplace institucional",
+    title: "Mercado institucional",
     detail:
       "Una cara publica sobria y confiable para mostrar la operacion y activar conversaciones comerciales.",
   },

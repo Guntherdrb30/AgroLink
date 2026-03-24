@@ -8,10 +8,18 @@ const statusStyles: Record<string, string> = {
   CANCELLED: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
+const statusLabels: Record<string, string> = {
+  DRAFT: "Borrador",
+  SHEETS_READY: "Planillas listas",
+  RESULTS_CAPTURED: "Resultados cargados",
+  APPLIED: "Aplicado",
+  CANCELLED: "Cancelado",
+};
+
 export function OperationStatusBadge({ status }: { status: string }) {
   return (
     <Badge variant="outline" className={statusStyles[status] ?? statusStyles.DRAFT}>
-      {status.replaceAll("_", " ")}
+      {statusLabels[status] ?? status.replaceAll("_", " ")}
     </Badge>
   );
 }

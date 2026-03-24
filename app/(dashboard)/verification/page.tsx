@@ -32,7 +32,7 @@ export default async function VerificationPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Verificacion"
-        title="Centro de verificacion del tenant"
+        title="Centro de verificacion de la empresa"
         description="Carga documentos, envia expedientes y monitorea el estado de aprobacion antes de habilitar operacion completa."
       />
       <Card>
@@ -71,7 +71,7 @@ export default async function VerificationPage() {
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">
                   {profile.subjectType === "TENANT"
-                    ? "Cuenta del tenant"
+                    ? "Cuenta de la empresa"
                     : profile.farm?.name || "Finca"}
                 </p>
                 <VerificationBadge status={profile.status} />

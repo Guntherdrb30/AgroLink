@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell
-      tenantName={tenantContext?.tenant.name ?? "Tenant pending"}
+      tenantName={tenantContext?.tenant.name ?? "Empresa pendiente"}
       userName={user.name ?? user.email}
       userRole={tenantContext?.membership.role ?? user.platformRole ?? "NO_ROLE"}
       memberships={user.memberships.map((membership) => ({

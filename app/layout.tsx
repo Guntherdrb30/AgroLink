@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     template: "%s | AgroLynk",
   },
   description:
-    "SaaS multitenant para gestion de fincas, control ganadero, marketplace verificado y operacion agropecuaria.",
+    "Plataforma multiempresa para gestion de fincas, control ganadero, mercado verificado y operacion agropecuaria.",
   applicationName: "AgroLynk",
   appleWebApp: {
     capable: true,
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "AgroLynk",
     description:
-      "Marketplace y SaaS agropecuario con operacion privada por tenant.",
+      "Mercado y plataforma agropecuaria con operacion privada por empresa.",
     siteName: "AgroLynk",
     type: "website",
   },

@@ -1,8 +1,8 @@
 import { ResetPasswordForm } from "@/components/forms/reset-password-form";
 
 const errorMessages: Record<string, string> = {
-  validation: "Enter a valid new password.",
-  invalid_token: "The reset token is invalid or expired.",
+  validation: "Ingresa una nueva contrasena valida.",
+  invalid_token: "El token de recuperacion no es valido o ya vencio.",
 };
 
 type ResetPasswordPageProps = {

@@ -1,8 +1,8 @@
 import { RegisterForm } from "@/components/forms/register-form";
 
 const errorMessages: Record<string, string> = {
-  validation: "Review the required fields and try again.",
-  email_exists: "That email already has an AgroLynk account.",
+  validation: "Revisa los campos requeridos e intenta nuevamente.",
+  email_exists: "Ese correo ya tiene una cuenta en AgroLynk.",
 };
 
 type RegisterPageProps = {

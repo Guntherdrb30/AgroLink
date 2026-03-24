@@ -14,26 +14,26 @@ export function RegisterForm({ errorMessage }: RegisterFormProps) {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Registration
+          Registro
         </p>
-        <CardTitle className="text-3xl">Create your tenant account</CardTitle>
+        <CardTitle className="text-3xl">Crea tu cuenta empresarial</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={registerAction} className="space-y-5">
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="name">
-              Full name
+              Nombre completo
             </label>
             <Input id="name" name="name" placeholder="Gunther Del Rosario" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="tenantName">
-              Company or operation name
+              Nombre de la empresa o finca
             </label>
             <Input
               id="tenantName"
               name="tenantName"
-              placeholder="AgroLynk Demo Farm"
+              placeholder="Finca AgroLynk Demo"
               required
             />
           </div>
@@ -45,13 +45,13 @@ export function RegisterForm({ errorMessage }: RegisterFormProps) {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="password">
-              Password
+              Contrasena
             </label>
             <Input id="password" name="password" type="password" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="confirmPassword">
-              Confirm password
+              Confirmar contrasena
             </label>
             <Input
               id="confirmPassword"
@@ -66,14 +66,14 @@ export function RegisterForm({ errorMessage }: RegisterFormProps) {
             </p>
           ) : null}
           <Button className="w-full" type="submit">
-            Create account
+            Crear cuenta
           </Button>
         </form>
         <p className="mt-5 text-sm text-muted-foreground">
-          Google access is available only after the email has an existing AgroLynk account.
+          El acceso con Google solo estara disponible cuando este correo ya tenga una cuenta registrada en AgroLynk.
         </p>
         <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary">
-          Back to login
+          Volver al acceso
         </Link>
       </CardContent>
     </Card>

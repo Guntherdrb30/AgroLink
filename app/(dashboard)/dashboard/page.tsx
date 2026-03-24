@@ -19,9 +19,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Dashboard"
+        eyebrow="Panel"
         title="Un panel limpio, listo para crecer por modulos."
-        description="Esta vista base ya separa metricas, contexto del tenant y proximos bloques funcionales del producto."
+        description="Esta vista base ya separa metricas, contexto de la empresa y proximos bloques funcionales del producto."
       />
       {verificationProfile ? (
         <VerificationGate status={verificationProfile.status} />
@@ -31,12 +31,12 @@ export default async function DashboardPage() {
           {
             label: "Fincas",
             value: snapshot?.farmsCount ?? "0",
-            hint: "Base maestra del tenant",
+            hint: "Base maestra de la empresa",
           },
           {
             label: "Publicaciones",
             value: snapshot?.listingsCount ?? "0",
-            hint: "Marketplace por conectar",
+            hint: "Mercado por conectar",
           },
           {
             label: "Animales",

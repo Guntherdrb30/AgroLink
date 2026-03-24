@@ -13,7 +13,7 @@ const metrics = [
   },
   {
     value: "Canal comercial",
-    label: "Marketplace y WhatsApp integrados para visibilidad y conversion.",
+    label: "Mercado y WhatsApp integrados para visibilidad y conversion.",
   },
 ];
 

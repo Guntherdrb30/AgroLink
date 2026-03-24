@@ -1,15 +1,15 @@
 import { LoginForm } from "@/components/forms/login-form";
 
 const errorMessages: Record<string, string> = {
-  invalid_credentials: "Invalid email or password.",
-  validation: "Complete the required fields correctly.",
+  invalid_credentials: "Correo o contrasena incorrectos.",
+  validation: "Completa correctamente los campos requeridos.",
   google_account_not_linked:
-    "Google access is available only after a matching AgroLynk account already exists.",
-  google_email_missing: "Google did not provide a usable email address.",
+    "El acceso con Google solo esta disponible cuando ya existe una cuenta AgroLynk con ese correo.",
+  google_email_missing: "Google no envio una direccion de correo valida.",
 };
 
 const successMessages: Record<string, string> = {
-  password_reset: "Password updated. You can sign in now.",
+  password_reset: "Contrasena actualizada. Ya puedes ingresar.",
 };
 
 type LoginPageProps = {

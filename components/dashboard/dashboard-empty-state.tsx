@@ -16,10 +16,10 @@ export function DashboardEmptyState() {
             Estado inicial
           </p>
           <CardTitle className="text-3xl">
-            El dashboard esta listo para recibir los modulos del producto.
+            El panel esta listo para recibir los modulos del producto.
           </CardTitle>
         </div>
-        <Button variant="outline">Configurar tenant</Button>
+        <Button variant="outline">Configurar empresa</Button>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-3">
         {nextSteps.map((step, index) => (

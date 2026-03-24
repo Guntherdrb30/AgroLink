@@ -1,11 +1,11 @@
 import { ForgotPasswordForm } from "@/components/forms/forgot-password-form";
 
 const errorMessages: Record<string, string> = {
-  validation: "Enter a valid email address.",
+  validation: "Ingresa una direccion de correo valida.",
 };
 
 const successMessages: Record<string, string> = {
-  "1": "If the email exists, the reset flow is now prepared.",
+  "1": "Si el correo existe, el flujo de recuperacion ya fue preparado.",
 };
 
 type ForgotPasswordPageProps = {

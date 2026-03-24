@@ -29,7 +29,7 @@ export function VerificationGate({ status }: VerificationGateProps) {
       <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <p className="max-w-2xl text-sm leading-7 text-amber-900">
           La publicacion comercial y los modulos operativos deben permanecer bloqueados
-          hasta que el perfil del tenant sea aprobado por plataforma.
+          hasta que el perfil de la empresa sea aprobado por la plataforma.
         </p>
         <Button asChild variant="outline">
           <Link href="/verification">Completar verificacion</Link>

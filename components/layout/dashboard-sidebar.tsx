@@ -13,13 +13,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const items = [
-  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Panel", icon: LayoutDashboard },
   { href: "/farms", label: "Fincas", icon: ShieldCheck },
   { href: "/livestock", label: "Ganado", icon: PawPrint },
   { href: "/operations", label: "Jornadas", icon: ClipboardList },
   { href: "/verification", label: "Verificacion", icon: FileSearch },
   { href: "/admin/verification", label: "Revision", icon: Building2 },
-  { href: "/dashboard", label: "Marketplace", icon: BriefcaseBusiness },
+  { href: "/dashboard", label: "Mercado", icon: BriefcaseBusiness },
   { href: "/dashboard", label: "Reportes", icon: BarChart3 },
 ];
 
@@ -32,7 +32,7 @@ export function DashboardSidebar({ tenantName }: DashboardSidebarProps) {
     <aside className="flex w-full max-w-xs flex-col gap-8 border-r border-border/70 bg-white px-5 py-6">
       <div className="space-y-3">
         <Badge variant="secondary" className="w-fit">
-          Tenant activo
+          Empresa activa
         </Badge>
         <div>
           <p className="text-sm text-muted-foreground">Operacion privada</p>

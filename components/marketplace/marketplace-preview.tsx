@@ -20,7 +20,7 @@ const steps = [
     step: "03",
     title: "Publica y convierte",
     detail:
-      "Muestra fincas, catalogos y listings en un marketplace institucional donde la informacion correcta transmite seriedad.",
+      "Muestra fincas, catalogos y publicaciones en un mercado institucional donde la informacion correcta transmite seriedad.",
     badge: "Crecimiento",
   },
 ];

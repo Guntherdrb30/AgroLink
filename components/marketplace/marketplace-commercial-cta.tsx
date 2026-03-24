@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const pillars = [
   "Control operativo por finca y por animal",
   "Jornadas oficiales listas para uso offline",
-  "Marketplace con percepcion institucional mas fuerte",
+  "Mercado con presencia institucional mas fuerte",
   "Proceso de adopcion claro para equipos reales",
 ];
 

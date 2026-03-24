@@ -35,7 +35,7 @@ const slides = [
     label: "Planillas PDF, Excel y captura rapida",
   },
   {
-    eyebrow: "Marketplace verificado",
+    eyebrow: "Mercado verificado",
     title: "Muestra tu operacion con confianza y convierte interes en conversaciones reales.",
     detail:
       "Perfiles verificados, catalogos comerciales y contacto por WhatsApp para que el cliente sienta respaldo antes de negociar.",
@@ -59,7 +59,7 @@ const assurances = [
   },
   {
     icon: MapPinned,
-    title: "Marketplace con contexto",
+    title: "Mercado con contexto",
     detail: "Ubicacion, catalogos y activos comerciales listos para crecer.",
   },
 ];
@@ -82,7 +82,7 @@ export function MarketplaceHero() {
       <div className="container grid gap-10 px-6 py-14 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-18">
         <div className="space-y-8">
           <div className="animate-enter-up inline-flex items-center rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground shadow-sm">
-            AgroLynk · SaaS multitenant para operacion agropecuaria y marketplace
+            AgroLynk - plataforma multiempresa para operacion agropecuaria y mercado verificado
           </div>
 
           <div className="animate-enter-up animate-enter-delay-1 space-y-5">
@@ -162,7 +162,7 @@ export function MarketplaceHero() {
                 <button
                   key={slide.title}
                   type="button"
-                  aria-label={`Ver slide ${index + 1}`}
+                  aria-label={`Ver diapositiva ${index + 1}`}
                   onClick={() => setActiveIndex(index)}
                   className={`h-2.5 rounded-full transition-all ${
                     activeIndex === index ? "w-10 bg-primary" : "w-2.5 bg-border"

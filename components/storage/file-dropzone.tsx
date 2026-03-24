@@ -159,7 +159,7 @@ export function FileDropzone({
       {previews.length > 0 ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Preview</p>
+            <p className="text-sm font-medium">Vista previa</p>
             <Button
               type="button"
               variant="outline"

@@ -41,7 +41,8 @@ export function ReviewQueue({ profiles }: ReviewQueueProps) {
                   : profile.farmName || "Finca"}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {profile.subjectType} · {profile.documentsCount} documentos
+                {profile.subjectType === "TENANT" ? "Cuenta" : "Finca"} ·{" "}
+                {profile.documentsCount} documentos
               </p>
             </div>
             <VerificationBadge status={profile.status} />
@@ -52,7 +53,7 @@ export function ReviewQueue({ profiles }: ReviewQueueProps) {
               <Textarea
                 name="comment"
                 defaultValue={profile.notes ?? ""}
-                placeholder="Comentario para el tenant o finca"
+                placeholder="Comentario para la cuenta o la finca"
               />
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" name="action" value="start_review" variant="outline">

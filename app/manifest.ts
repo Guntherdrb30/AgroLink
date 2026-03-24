@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AgroLynk",
     short_name: "AgroLynk",
     description:
-      "SaaS multitenant para gestion integral de fincas, marketplace y operacion agropecuaria.",
+      "Plataforma multiempresa para gestion integral de fincas, mercado y operacion agropecuaria.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
