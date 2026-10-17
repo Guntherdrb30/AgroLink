@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getCurrentTenant, requireAuth } from "@/lib/auth/session";
 
@@ -12,6 +13,8 @@ export default async function DashboardLayout({
     requireAuth(),
     getCurrentTenant(),
   ]);
+
+  if (!tenantContext) redirect("/onboarding");
 
   return (
     <DashboardShell

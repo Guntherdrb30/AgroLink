@@ -1,16 +1,17 @@
-import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { VerificationGate } from "@/components/dashboard/verification-gate";
 import { PageHeader } from "@/components/shared/page-header";
-import { getCurrentTenantVerification } from "@/lib/auth/session";
+import { getCurrentTenant, getCurrentTenantVerification } from "@/lib/auth/session";
 import { getDashboardSnapshot } from "@/server/queries/dashboard-query";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = await auth();
-  const tenantId = session?.user.defaultTenantId;
+  const context = await getCurrentTenant();
+  if (!context) redirect("/onboarding");
+  const tenantId = context.tenant.id;
   const [snapshot, verificationProfile] = await Promise.all([
     tenantId ? getDashboardSnapshot(tenantId) : null,
     getCurrentTenantVerification(),
