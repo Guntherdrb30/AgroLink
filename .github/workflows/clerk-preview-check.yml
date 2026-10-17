@@ -1,0 +1,38 @@
+name: Clerk migration validation
+
+on:
+  push:
+    branches:
+      - feat/clerk-auth-migration
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconcile npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Save lockfile on the migration branch only
+        if: github.ref == 'refs/heads/feat/clerk-auth-migration'
+        shell: bash
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore(auth): sync lockfile for Clerk SDK"
+            git push origin "HEAD:feat/clerk-auth-migration"
+          fi
+      - name: Install reproducible dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript and Next.js build
+        run: npm run build
