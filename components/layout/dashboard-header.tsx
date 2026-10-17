@@ -1,9 +1,6 @@
-import { LogOut } from "lucide-react";
-
-import { signOutAction } from "@/server/actions/sign-out";
+import { UserButton } from "@clerk/nextjs";
 import { TenantSwitcher } from "@/components/layout/tenant-switcher";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 type DashboardHeaderProps = {
   userName: string;
@@ -42,12 +39,7 @@ export function DashboardHeader({
             <Badge variant="outline">{roleLabels[userRole] ?? userRole}</Badge>
           </div>
         </div>
-        <form action={signOutAction}>
-          <Button type="submit" variant="outline" size="sm">
-            <LogOut className="size-4" />
-            Cerrar sesion
-          </Button>
-        </form>
+        <UserButton />
       </div>
       <TenantSwitcher memberships={memberships} />
     </header>

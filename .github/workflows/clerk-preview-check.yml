@@ -1,0 +1,27 @@
+name: Clerk migration validation
+
+on:
+  push:
+    branches:
+      - feat/clerk-auth-migration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install reproducible dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Security unit tests
+        run: npm run test
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript and Next.js build
+        run: npm run build

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/auth";
+import { getCurrentTenant } from "@/lib/auth/session";
 import { fileUploadRequestSchema } from "@/lib/validators/file-storage";
 import { storeFile } from "@/server/services/file-storage-service";
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const context = await getCurrentTenant();
 
-  if (!session?.user?.id || !session.user.defaultTenantId) {
+  if (!context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -32,11 +32,12 @@ export async function POST(request: Request) {
 
   try {
     const storedFile = await storeFile({
-      tenantId: session.user.defaultTenantId,
-      uploadedById: session.user.id,
+      tenantId: context.tenant.id,
+      uploadedById: context.user.id,
       file,
       usage: parsed.data.usage,
-      visibility: parsed.data.visibility,
+      // Never allow the client to downgrade a private file classification.
+      visibility: undefined,
       label: parsed.data.label,
       entityType: parsed.data.entityType,
       entityId: parsed.data.entityId,
