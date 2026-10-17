@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { prisma } from "@/lib/db/prisma";
+import { assertIsolatedPreviewDatabase } from "@/lib/security/preview-db-isolation";
 import { requireAuth } from "@/lib/auth/session";
 import { slugify } from "@/lib/utils/slugify";
 import { recordAccessAudit } from "@/server/services/access-audit-service";
@@ -13,6 +14,7 @@ import { recordAccessAudit } from "@/server/services/access-audit-service";
 const schema = z.object({ tenantName: z.string().trim().min(3).max(120) });
 
 export async function createFirstTenantAction(formData: FormData) {
+  assertIsolatedPreviewDatabase();
   const user = await requireAuth();
   const parsed = schema.safeParse({ tenantName: formData.get("tenantName") });
   if (!parsed.success) redirect("/onboarding?error=validation");

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { isUnsafePreviewDatabase } from "@/lib/security/preview-db-isolation";
 
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
@@ -13,6 +14,12 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, request) => {
   if (isProtectedRoute(request)) {
+    if (isUnsafePreviewDatabase()) {
+      return Response.json(
+        { error: "PREVIEW_DATABASE_NOT_ISOLATED", message: "Entorno de pruebas pendiente de configuración segura." },
+        { status: 503 },
+      );
+    }
     await auth.protect();
   }
 });

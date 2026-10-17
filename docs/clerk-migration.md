@@ -47,3 +47,14 @@
 ## Reversión
 
 La rama `main` permanece con Auth.js hasta autorizar el merge. No ejecutar migraciones de datos reales durante esta fase. Para revertir Preview, desplegar nuevamente main sin afectar el esquema de producción.
+
+## Cortafuegos de base de datos Preview
+
+Por seguridad, la rama incluye una barrera activa cuando `VERCEL_ENV=preview`:
+las rutas privadas y el aprovisionamiento interno están bloqueados con HTTP 503 a menos que
+`AGROLYNK_PREVIEW_DB_ISOLATED=true`.
+
+**No fijar esta variable hasta haber verificado por separado que el `DATABASE_URL` branch-scoped no es el mismo que usa producción** y que se han sincronizado las referencias de conexión necesarias.
+Esta barrera no sustituye el aislamiento de credenciales; es una segunda línea de defensa.
+
+El proyecto Neon original `morning-star-70577084` pertenece a un plan Launch administrado por Vercel. Crear ramas con compute puede consumir recursos facturables; no hacerlo antes de la aprobación de costos.

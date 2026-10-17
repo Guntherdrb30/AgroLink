@@ -3,6 +3,7 @@ import { forbidden, redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/db/prisma";
+import { assertIsolatedPreviewDatabase } from "@/lib/security/preview-db-isolation";
 import { hasPlatformRole, hasTenantRole, type PlatformRole, type TenantRole } from "@/lib/permissions/rbac";
 import { findUserAuthContextById } from "@/server/repositories/user-repository";
 import { findTenantVerificationProfile } from "@/server/repositories/verification-repository";
@@ -14,6 +15,7 @@ import { findTenantVerificationProfile } from "@/server/repositories/verificatio
 export const getCurrentUser = cache(async () => {
   const { userId } = await auth();
   if (!userId) return null;
+  assertIsolatedPreviewDatabase();
 
   const linkedUser = await prisma.user.findUnique({
     where: { clerkUserId: userId },
