@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -17,21 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Reconcile npm lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Save lockfile on the migration branch only
-        if: github.ref == 'refs/heads/feat/clerk-auth-migration'
-        shell: bash
-        run: |
-          if ! git diff --quiet -- package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "chore(auth): sync lockfile for Clerk SDK"
-            git push origin "HEAD:feat/clerk-auth-migration"
-          fi
       - name: Install reproducible dependencies
         run: npm ci --no-audit --no-fund
+      - name: Security unit tests
+        run: npm run test
       - name: Lint
         run: npm run lint
       - name: TypeScript and Next.js build
