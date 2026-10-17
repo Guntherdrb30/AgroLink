@@ -58,3 +58,22 @@ las rutas privadas y el aprovisionamiento interno están bloqueados con HTTP 503
 Esta barrera no sustituye el aislamiento de credenciales; es una segunda línea de defensa.
 
 El proyecto Neon original `morning-star-70577084` pertenece a un plan Launch administrado por Vercel. Crear ramas con compute puede consumir recursos facturables; no hacerlo antes de la aprobación de costos.
+
+## Base de datos canónica — decisión 17-10-2026
+
+**No crear otra base de datos principal para AgroLynk.** La única fuente de verdad para la plataforma es el proyecto Neon ya existente:
+
+- Nombre: `agrolink_bd_neon`
+- Proyecto: `morning-star-70577084`
+- Rama oficial reservada para producción: `main` (`br-wandering-morning-an4pp5sb`)
+- Región: `aws-us-east-1`
+- Integración Vercel: proyecto `agro-link`; `DATABASE_URL` está actualmente publicada a los targets production, preview y development.
+
+La revisión de solo lectura confirmó 28 tablas de dominio, incluidos `User`, `Tenant`, `TenantMembership`, `Farm`, `Animal`, `LivestockOperation` y `MarketplaceListing`.
+El campo `User.clerkUserId` consta en el schema Prisma de esta PR, **pero su migración real todavía está pendiente**.
+
+Arquitectura elegida: mantener **un solo proyecto Neon original**; desplegar la rama `main` sobre la rama Neon `main`, y desplegar la rama GitHub `feat/clerk-auth-migration` sobre una **rama hija de desarrollo dentro del mismo proyecto Neon**, cuando exista aprobación del eventual costo de compute. No crear un segundo proyecto Neon ni usar ninguna BD de CarpiHogar, LUNA u otros productos.
+
+Las pruebas y migraciones Prisma se ejecutarán exclusivamente contra la rama hija usando una conexión directa independiente. Prohibido aplicar `db push`, semillas o escrituras experimentales a `main` antes de la aprobación explícita de producción.
+
+Clerk sigue siendo la fuente de identidad; los perfiles de negocio continúan siendo propiedad de AgroLynk PostgreSQL.
