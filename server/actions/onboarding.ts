@@ -10,6 +10,7 @@ import { assertIsolatedPreviewDatabase } from "@/lib/security/preview-db-isolati
 import { requireAuth } from "@/lib/auth/session";
 import { slugify } from "@/lib/utils/slugify";
 import { recordAccessAudit } from "@/server/services/access-audit-service";
+import { sendVerificationNotification } from "@/server/services/notification-email-service";
 
 const schema = z.object({ tenantName: z.string().trim().min(3).max(120) });
 
@@ -23,7 +24,7 @@ export async function createFirstTenantAction(formData: FormData) {
   const existing = await prisma.tenantMembership.findFirst({ where: { userId: user.id } });
   if (existing) redirect("/dashboard");
 
-  await prisma.$transaction(async (tx) => {
+  const tenantId = await prisma.$transaction(async (tx) => {
     // Serialize onboarding per user; concurrent submissions cannot create two memberships.
     const current = await tx.user.findUnique({ where: { id: user.id }, select: { defaultTenantId: true } });
     if (!current || current.defaultTenantId) throw new Error("ACCOUNT_ALREADY_ONBOARDED");
@@ -46,6 +47,16 @@ export async function createFirstTenantAction(formData: FormData) {
     await tx.verificationProfile.create({
       data: { tenantId: tenant.id, subjectType: "TENANT", subjectId: tenant.id, status: "PENDING" },
     });
+    return tenant.id;
+  });
+  // Notification failures never invalidate a successful tenant registration.
+  await sendVerificationNotification({
+    event: "welcome",
+    tenantId,
+    to: user.email,
+    recipientName: user.name ?? "",
+    tenantName: parsed.data.tenantName,
+    idempotencyKey: `agrolynk-tenant-welcome-${tenantId}`,
   });
   await recordAccessAudit({ action: "ONBOARDING_TENANT_CREATED", userId: user.id, email: user.email, provider: "clerk" });
   revalidatePath("/dashboard");

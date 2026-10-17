@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/clerk-auth-migration
+      - main
   workflow_dispatch:
 
 permissions:

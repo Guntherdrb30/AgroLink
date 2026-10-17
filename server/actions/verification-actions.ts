@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db/prisma";
+import { sendVerificationNotification } from "@/server/services/notification-email-service";
+import { recordAccessAudit } from "@/server/services/access-audit-service";
 import { redirect } from "next/navigation";
 
 import { getCurrentTenant, requireAuth, requireRole } from "@/lib/auth/session";
@@ -64,7 +67,16 @@ export async function submitVerificationProfileAction(formData: FormData) {
     redirect("/verification?error=profile");
   }
 
-  await submitVerificationProfile(tenantContext.tenant.id, parsed.data.profileId, user.id);
+  const profile = await submitVerificationProfile(tenantContext.tenant.id, parsed.data.profileId, user.id);
+  await sendVerificationNotification({
+    event: "submitted",
+    tenantId: tenantContext.tenant.id,
+    to: user.email,
+    recipientName: user.name ?? "",
+    tenantName: tenantContext.tenant.name,
+    subjectLabel: profile.subjectType === "FARM" ? "finca" : "empresa",
+    idempotencyKey: `agrolynk-submitted-${profile.id}-${profile.updatedAt.getTime()}`,
+  });
 
   revalidatePath("/verification");
   revalidatePath("/farms");
@@ -86,12 +98,31 @@ export async function reviewVerificationProfileAction(formData: FormData) {
     redirect("/admin/verification?error=validation");
   }
 
-  await reviewVerificationProfile({
+  const reviewed = await reviewVerificationProfile({
     profileId: parsed.data.profileId,
     actorUserId: user.id,
     action: parsed.data.action,
     comment: parsed.data.comment,
   });
+  const event = ({
+    approve: "approved",
+    request_fix: "needs_changes",
+    reject: "rejected",
+    start_review: "review_started",
+  } as const)[parsed.data.action];
+  const members = await prisma.tenantMembership.findMany({
+    where: { tenantId: reviewed.tenantId, role: { in: ["TENANT_OWNER", "TENANT_ADMIN"] } },
+    include: { user: { select: { email: true, name: true } }, tenant: { select: { name: true } } },
+  });
+  await Promise.all(members.map(member => sendVerificationNotification({
+    event,
+    tenantId: reviewed.tenantId,
+    to: member.user.email,
+    recipientName: member.user.name ?? "",
+    tenantName: member.tenant.name,
+    subjectLabel: reviewed.subjectType === "FARM" ? "finca" : "empresa",
+    idempotencyKey: `agrolynk-review-${reviewed.id}-${reviewed.updatedAt.getTime()}-${member.userId}`,
+  })));
 
   revalidatePath("/admin/verification");
   revalidatePath("/verification");

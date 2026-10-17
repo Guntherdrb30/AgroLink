@@ -1,4 +1,7 @@
 import { notFound } from "next/navigation";
+import { sendWelcomeEmailAction } from "@/server/actions/notification-actions";
+import { notificationsConfigured } from "@/server/services/notification-email-service";
+import { Button } from "@/components/ui/button";
 
 import { findTenantVerificationProfile, listVerificationProfilesByTenant } from "@/server/repositories/verification-repository";
 import { requireRole } from "@/lib/auth/session";
@@ -35,6 +38,25 @@ export default async function VerificationPage() {
         title="Centro de verificacion de la empresa"
         description="Carga documentos, envia expedientes y monitorea el estado de aprobacion antes de habilitar operacion completa."
       />
+      <Card>
+        <CardHeader>
+          <CardTitle>Notificaciones por correo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Clerk gestiona los codigos de acceso. AgroLynk enviara avisos sobre tu empresa y sus verificaciones.
+          </p>
+          {notificationsConfigured() ? (
+            <form action={sendWelcomeEmailAction}>
+              <Button type="submit" variant="outline">Enviar correo de bienvenida</Button>
+            </form>
+          ) : (
+            <p className="text-sm font-medium text-amber-800">
+              El servicio de notificaciones esta pendiente de activar por el administrador.
+            </p>
+          )}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
           <CardTitle>Estado general de la cuenta</CardTitle>
