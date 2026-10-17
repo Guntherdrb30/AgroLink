@@ -27,7 +27,11 @@ export function buildBlobPath(params: {
 export async function uploadToBlob(params: {
   path: string;
   file: File;
+  visibility: "PUBLIC" | "PRIVATE";
 }) {
+  if (params.visibility === "PRIVATE") {
+    throw new Error("PRIVATE_STORAGE_NOT_CONFIGURED");
+  }
   const blob = await put(params.path, params.file, {
     access: "public",
     addRandomSuffix: true,

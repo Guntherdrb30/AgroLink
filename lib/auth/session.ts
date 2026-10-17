@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { forbidden, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/db/prisma";
@@ -95,7 +95,7 @@ export async function requireRole(requirement: RoleRequirement) {
     hasTenantRole(tenantContext.membership.role, requirement.tenant)) {
     return { user, tenantContext };
   }
-  forbidden();
+  redirect("/dashboard");
 }
 
 export async function isCurrentTenantOperational() {

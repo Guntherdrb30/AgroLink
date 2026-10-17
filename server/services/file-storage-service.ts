@@ -43,6 +43,7 @@ export async function storeFile(params: StoreFileParams) {
   const uploaded = await uploadToBlob({
     path,
     file: params.file,
+    visibility,
   });
 
   return createFileStorageRecord({
