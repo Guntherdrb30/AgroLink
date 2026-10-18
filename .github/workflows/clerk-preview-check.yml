@@ -5,6 +5,7 @@ on:
     branches:
       - feat/clerk-auth-migration
       - main
+      - feat/ganadia-sprint1-excel-preview
   workflow_dispatch:
 
 permissions:
