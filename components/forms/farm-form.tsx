@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
-import { createFarmAction, updateFarmAction } from "@/server/actions/farm-actions";
 import { MAX_SERVER_FARM_UPLOAD_BYTES, validateFarmUploadFile, type FarmUploadKind } from "@/lib/blob/farm-upload-policy";
 import { FileDropzone } from "@/components/storage/file-dropzone";
 import { FilePreviewGrid } from "@/components/storage/file-preview-grid";
@@ -123,20 +122,19 @@ async function uploadPrivateFarmImage(
 
 export function FarmForm({ mode, farm }: FarmFormProps) {
   const [uploading, setUploading] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const action = mode === "create" ? createFarmAction : updateFarmAction;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (uploading || pending) return;
+    if (uploading || saving) return;
 
     const form = event.currentTarget;
     const formData = new FormData(form);
     const primaryFile = formData.get("primaryImage");
     const logoFile = formData.get("logo");
-    // Never send File/Blob via a Server Action: default Next.js body limit is 1 MB.
+    // Only short, tenant-scoped Blob path references go into the JSON write.
     formData.delete("primaryImage");
     formData.delete("logo");
 
@@ -153,19 +151,50 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
         }
       }
       setProgress("Guardando los cambios de la finca...");
-      startTransition(async () => {
-        try {
-          const result = await action(formData);
-          if (result?.error) setError(result.error);
-        } catch {
-          setError("No se pudo completar el guardado. Comprueba tu conexión e inténtalo nuevamente.");
-        } finally {
-          setUploading(false);
-          setProgress("");
-        }
-      });
+      if (mode === "edit" && !farm?.id) {
+        throw new Error("No se pudo identificar la finca para actualizarla.");
+      }
+
+      const fields = ["name", "description", "location", "latitude", "longitude", "hectares"] as const;
+      const farmInput = Object.fromEntries(
+        fields.map((key) => [key, String(formData.get(key) ?? "")]),
+      );
+      const assets = {
+        primaryImagePath: String(formData.get("primaryImagePath") ?? "") || null,
+        logoPath: String(formData.get("logoPath") ?? "") || null,
+      };
+
+      // A same-origin API write avoids obsolete Next.js Server Action references
+      // in installed PWAs after deployments, and returns useful HTTP errors.
+      const url = mode === "edit" ? "/api/farms/" + encodeURIComponent(farm!.id) : "/api/farms";
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: mode === "edit" ? "PATCH" : "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ farm: farmInput, assets }),
+        });
+      } catch {
+        throw new Error("No se pudo conectar con el servidor al guardar. Verifica la conexión y vuelve a intentar.");
+      }
+
+      const result = await response.json().catch(() => null) as {
+        farmId?: string;
+        error?: string;
+      } | null;
+      if (!response.ok || !result?.farmId) {
+        throw new Error(result?.error ?? "No se pudo guardar la finca (HTTP " + response.status + ").");
+      }
+
+      window.location.assign(
+        "/farms/" + encodeURIComponent(result.farmId) +
+        "?success=" + (mode === "edit" ? "updated" : "created"),
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Error al subir los archivos.");
+    } finally {
       setUploading(false);
       setProgress("");
     }
@@ -225,8 +254,8 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
       {progress && <p role="status" className="text-sm text-muted-foreground">{progress}</p>}
       {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
       <div>
-        <Button type="submit" disabled={uploading || pending}>
-          {uploading || pending ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}
+        <Button type="submit" disabled={uploading || saving}>
+          {uploading || saving ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}
         </Button>
       </div>
     </form>
