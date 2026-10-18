@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { VerificationBadge } from "@/components/shared/verification-badge";
+import { Badge } from "@/components/ui/badge";
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,6 +18,7 @@ type FarmListProps = {
 };
 
 export function FarmList({ farms }: FarmListProps) {
+  const verificationRequired = isBusinessVerificationRequired();
   if (farms.length === 0) {
     return (
       <Card>
@@ -39,12 +42,16 @@ export function FarmList({ farms }: FarmListProps) {
                 {farm.location || "Ubicacion pendiente"}
               </p>
             </div>
-            <VerificationBadge status={farm.verificationStatus} />
+            {verificationRequired ? (
+              <VerificationBadge status={farm.verificationStatus} />
+            ) : (
+              <Badge variant="secondary">Modo pruebas</Badge>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
               <p>Hectareas: {farm.hectares || "N/D"}</p>
-              <p>Estado operativo: {farm.status}</p>
+              <p>{verificationRequired ? `Estado operativo: ${farm.status}` : "Verificacion documental pospuesta para pruebas"}</p>
             </div>
             <Button asChild variant="outline">
               <Link href={`/farms/${farm.id}`}>Administrar finca</Link>
