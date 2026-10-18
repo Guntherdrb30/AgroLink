@@ -1,4 +1,3 @@
-import { get } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { canReadPrivateFile } from "@/lib/blob/private-file-access";
@@ -34,24 +33,10 @@ export async function GET(
     });
   }
 
-  const result = await get(file.path, { access: "private" });
-  if (!result || result.statusCode !== 200) {
-    return new Response("Not found", {
-      status: 404,
-      headers: { "Cache-Control": NO_STORE },
-    });
-  }
-
-  const safeName = file.originalName.replace(/[\r\n"\\]/g, "_").slice(0, 160) || "documento";
-  const image = ["image/jpeg", "image/png", "image/webp"].includes(file.mimeType);
-  const contentType = image ? file.mimeType : "application/octet-stream";
-  return new Response(result.stream, {
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": `${image ? "inline" : "attachment"}; filename="${safeName}"`,
-      "Content-Security-Policy": "sandbox",
-      "Cache-Control": NO_STORE,
-      "X-Content-Type-Options": "nosniff",
-    },
+  // Fail closed until the private Blob SDK and lockfile upgrade is tested.
+  // No fallback to the stored provider URL is permitted.
+  return new Response("Private file serving not enabled", {
+    status: 503,
+    headers: { "Cache-Control": NO_STORE },
   });
 }
