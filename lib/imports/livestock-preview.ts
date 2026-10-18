@@ -66,6 +66,7 @@ export type LivestockPreview = {
   checkedExistingCodes?: boolean;
   /** Internal-only comparison input; strip from HTTP response. */
   candidateCodes: Array<{ row: number; code: string; valid: boolean }>;
+  importRows: Array<{ row: number; code: string; species: string; breed: string; sex: string; weight: string; productiveLine: string; birthDate: string; lot: string; valid: boolean }>;
 };
 
 function norm(value: unknown) {
@@ -182,6 +183,7 @@ export async function previewLivestockWorkbook(
   const seen = new Set<string>();
   const previewRows: PreviewRow[] = [], issues: PreviewIssue[] = [];
   const candidateCodes: LivestockPreview['candidateCodes'] = [];
+  const importRows: LivestockPreview['importRows'] = [];
   let validRows = 0, rowCount = 0;
   for (const [index, row] of body.slice(0, MAX_PREVIEW_ROWS).entries()) {
     if (!Array.isArray(row) || row.every(x => !cellText(x))) continue;
@@ -199,7 +201,12 @@ export async function previewLivestockWorkbook(
     if (sex && !["m", "f", "macho", "hembra", "masculino", "femenino"].includes(norm(sex)))
       rowIssues.push({ row: sourceRow, field: "sexo", code: "UNRECOGNIZED_SEX" });
     if (weight && !validWeight(weight)) rowIssues.push({ row: sourceRow, field: "peso", code: "INVALID_WEIGHT" });
+    const species = getCell(row, positions.species);
+    if (!species) rowIssues.push({ row: sourceRow, field: "especie", code: "REQUIRED_SPECIES" });
     if (rowIssues.length === 0) validRows++;
+    importRows.push({ row: sourceRow, code, species, breed: getCell(row, positions.breed), sex,
+      weight, productiveLine: getCell(row, positions.productiveLine), birthDate: getCell(row, positions.birthDate),
+      lot: getCell(row, positions.lot), valid: rowIssues.length === 0 });
     if (code) candidateCodes.push({ row: sourceRow, code, valid: rowIssues.length === 0 });
     issues.push(...rowIssues);
     if (previewRows.length < 20) previewRows.push({
@@ -214,5 +221,5 @@ export async function previewLivestockWorkbook(
   if (unknownHeaders.length) warnings.push("Hay columnas sin asignación; puedes mapearlas manualmente.");
   return { status: "PREVIEW_ONLY", sheetName: name, headers, mapping, mappingPositions: positions,
     unknownHeaders, rowCount, validRows, issueCount: issues.length, issues: issues.slice(0, 100),
-    previewRows, truncated, warnings, candidateCodes };
+    previewRows, truncated, warnings, candidateCodes, importRows };
 }
