@@ -21,20 +21,13 @@ export async function GET(
   }
 
   const { fileId } = await params;
-  const file = await prisma.fileStorage.findUnique({
+  const document = await prisma.verificationDocument.findUnique({
     where: { id: fileId },
-    select: {
-      id: true,
-      tenantId: true,
-      visibility: true,
-      usage: true,
-      entityType: true,
-      path: true,
-      mimeType: true,
-      originalName: true,
-    },
+    include: { file: true },
   });
-  if (!file || !canReadPrivateFile(file, currentUser)) {
+  const file = document?.file;
+  if (!file || !document || document.tenantId !== file.tenantId ||
+      !canReadPrivateFile(file, currentUser)) {
     return new Response("Not found", {
       status: 404,
       headers: { "Cache-Control": NO_STORE },
