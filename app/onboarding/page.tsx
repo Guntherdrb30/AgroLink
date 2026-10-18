@@ -1,3 +1,4 @@
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { redirect } from "next/navigation";
 import { getCurrentTenant, requireAuth } from "@/lib/auth/session";
 import { createFirstTenantAction } from "@/server/actions/onboarding";
@@ -18,7 +19,7 @@ export default async function OnboardingPage() {
           <CardTitle className="text-3xl">Registra tu empresa o finca</CardTitle>
           <p className="text-sm text-muted-foreground">
             Tu identidad ya fue verificada. Ahora crea la empresa que administraras en AgroLynk.
-            Los documentos se revisaran antes de habilitar las operaciones.
+            {isBusinessVerificationRequired() ? "Los documentos se revisaran antes de habilitar las operaciones." : "Modo de desarrollo: puedes probar las funcionalidades sin completar la verificación documental. Clerk y los permisos siguen activos."}
           </p>
         </CardHeader>
         <CardContent>
