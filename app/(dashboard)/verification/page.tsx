@@ -1,3 +1,5 @@
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
+import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { sendWelcomeEmailAction } from "@/server/actions/notification-actions";
 import { notificationsConfigured } from "@/server/services/notification-email-service";
@@ -14,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export const dynamic = "force-dynamic";
 
 export default async function VerificationPage() {
+  if (!isBusinessVerificationRequired()) redirect("/dashboard");
   const { tenantContext } = await requireRole({
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"],
   });
