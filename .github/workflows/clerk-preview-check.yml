@@ -5,6 +5,7 @@ on:
     branches:
       - feat/clerk-auth-migration
       - main
+      - feat/ganadia-sprint0-security-billing
   workflow_dispatch:
 
 permissions:

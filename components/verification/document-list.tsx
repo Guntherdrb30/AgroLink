@@ -10,7 +10,6 @@ type DocumentListProps = {
     label: string;
     type: string;
     fileName: string;
-    blobUrl: string;
     mimeType?: string;
   }>;
 };
@@ -30,7 +29,7 @@ export function DocumentList({ title, documents }: DocumentListProps) {
               files={documents.map((document) => ({
                 id: document.id,
                 name: document.fileName,
-                url: document.blobUrl,
+                url: `/api/files/${document.id}`,
                 mimeType: document.mimeType || "application/octet-stream",
               }))}
             />
@@ -47,7 +46,7 @@ export function DocumentList({ title, documents }: DocumentListProps) {
                     </p>
                   </div>
                   <Link
-                    href={document.blobUrl}
+                    href={`/api/files/${document.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-sm font-medium text-primary"

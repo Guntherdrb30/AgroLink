@@ -91,7 +91,7 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
       <DocumentList
         title="Documentos cargados"
         documents={(farm.verificationProfile?.documents ?? []).map((document) => ({
-          id: document.id,
+          id: document.fileId ?? document.id,
           label: document.label,
           type: document.type,
           fileName: document.fileName,

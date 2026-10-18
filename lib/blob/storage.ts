@@ -30,7 +30,18 @@ export async function uploadToBlob(params: {
   visibility: "PUBLIC" | "PRIVATE";
 }) {
   if (params.visibility === "PRIVATE") {
-    throw new Error("PRIVATE_STORAGE_NOT_CONFIGURED");
+    // Private Blob store must be attached to this project; SDK 2.x supports private access.
+    const blob = await put(params.path, params.file, {
+      access: "private",
+      addRandomSuffix: true,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+    return {
+      url: blob.url,
+      pathname: blob.pathname,
+      size: params.file.size,
+      contentType: params.file.type || "application/octet-stream",
+    };
   }
   const blob = await put(params.path, params.file, {
     access: "public",

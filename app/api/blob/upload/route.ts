@@ -30,6 +30,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid upload payload" }, { status: 400 });
   }
 
+  // Generic uploads cannot create private records or attach arbitrary entities.
+  if (!["livestock_image", "listing_image", "farm_primary_image", "farm_logo"].includes(parsed.data.usage)) {
+    return NextResponse.json({ error: "Use a purpose-specific upload flow" }, { status: 403 });
+  }
+  if (parsed.data.entityType || parsed.data.entityId || parsed.data.visibility) {
+    return NextResponse.json({ error: "Entity and visibility are server-controlled" }, { status: 403 });
+  }
+
   try {
     const storedFile = await storeFile({
       tenantId: context.tenant.id,
@@ -39,8 +47,8 @@ export async function POST(request: Request) {
       // Never allow the client to downgrade a private file classification.
       visibility: undefined,
       label: parsed.data.label,
-      entityType: parsed.data.entityType,
-      entityId: parsed.data.entityId,
+      entityType: undefined,
+      entityId: undefined,
     });
 
     return NextResponse.json({ file: storedFile });

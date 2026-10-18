@@ -1,0 +1,34 @@
+name: Refresh Blob lockfile (Sprint 0)
+on:
+  push:
+    branches:
+      - feat/ganadia-sprint0-security-billing
+    paths:
+      - package.json
+      - .github/workflows/refresh-blob-lockfile.yml
+permissions:
+  contents: write
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ganadia-sprint0-security-billing
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Refresh lockfile only
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Validate reproducibility
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile if changed
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "build: refresh lockfile for private Blob SDK"
+            git push origin HEAD:feat/ganadia-sprint0-security-billing
+          fi
