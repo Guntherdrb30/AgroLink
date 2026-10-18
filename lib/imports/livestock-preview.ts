@@ -47,6 +47,7 @@ export type PreviewRow = {
   productiveLine: string;
   birthDate: string;
   lot: string;
+  visualId: string;
   issues: PreviewIssue[];
 };
 export type LivestockPreview = {
@@ -66,7 +67,7 @@ export type LivestockPreview = {
   checkedExistingCodes?: boolean;
   /** Internal-only comparison input; strip from HTTP response. */
   candidateCodes: Array<{ row: number; code: string; valid: boolean }>;
-  importRows: Array<{ row: number; code: string; species: string; breed: string; sex: string; weight: string; productiveLine: string; birthDate: string; lot: string; valid: boolean }>;
+  importRows: Array<{ row: number; code: string; species: string; breed: string; sex: string; weight: string; productiveLine: string; birthDate: string; lot: string; visualId: string; valid: boolean }>;
 };
 
 function norm(value: unknown) {
@@ -232,13 +233,13 @@ export async function previewLivestockWorkbook(
     if (rowIssues.length === 0) validRows++;
     importRows.push({ row: sourceRow, code, species, breed: getCell(row, positions.breed), sex,
       weight, productiveLine: getCell(row, positions.productiveLine), birthDate: getCell(row, positions.birthDate),
-      lot: getCell(row, positions.lot), valid: rowIssues.length === 0 });
+      lot: getCell(row, positions.lot), visualId: getCell(row, positions.visualId), valid: rowIssues.length === 0 });
     if (code) candidateCodes.push({ row: sourceRow, code, valid: rowIssues.length === 0 });
     issues.push(...rowIssues);
     if (previewRows.length < 20) previewRows.push({
       sourceRow, internalCode: code, species: getCell(row, positions.species), breed: getCell(row, positions.breed),
       sex, initialWeight: weight, productiveLine: getCell(row, positions.productiveLine),
-      birthDate: getCell(row, positions.birthDate), lot: getCell(row, positions.lot), issues: rowIssues,
+      birthDate: getCell(row, positions.birthDate), lot: getCell(row, positions.lot), visualId: getCell(row, positions.visualId), issues: rowIssues,
     });
   }
   const warnings = ["Solo vista previa; no se escriben registros ni se guardan archivos."];
