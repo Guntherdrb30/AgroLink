@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import type { UploadUsageKey } from "@/lib/blob/config";
 import type { FarmInput } from "@/lib/validators/farm";
 import { createFarm, deleteFarm, findFarmById, updateFarm } from "@/server/repositories/farm-repository";
@@ -40,6 +41,9 @@ export async function createFarmForTenant(
     logo?: File | null;
   },
 ) {
+  // A previous request may have saved the farm before a media upload failed.
+  const existing = await prisma.farm.findFirst({ where: { tenantId, name: { equals: input.name, mode: "insensitive" } }, orderBy: { createdAt: "desc" } });
+  if (existing) return existing;
   const farm = await createFarm({
     tenant: {
       connect: {
@@ -79,9 +83,9 @@ export async function createFarmForTenant(
   ]);
 
   const updatedFarm = await updateFarm(farm.id, {
-    primaryImageUrl: primaryImageFile?.url ?? null,
+    primaryImageUrl: primaryImageFile ? `/api/farm-media/${primaryImageFile.id}` : null,
     primaryImageFileId: primaryImageFile?.id ?? null,
-    logoUrl: logoFile?.url ?? null,
+    logoUrl: logoFile ? `/api/farm-media/${logoFile.id}` : null,
     logoFileId: logoFile?.id ?? null,
   });
 
@@ -134,7 +138,7 @@ export async function updateTenantFarm(
       await removeStoredFile(currentFarm.primaryImageFileId);
     }
 
-    primaryImageUrl = upload.url;
+    primaryImageUrl = `/api/farm-media/${upload.id}`;
     primaryImageFileId = upload.id;
   }
 
@@ -152,7 +156,7 @@ export async function updateTenantFarm(
       await removeStoredFile(currentFarm.logoFileId);
     }
 
-    logoUrl = upload.url;
+    logoUrl = `/api/farm-media/${upload.id}`;
     logoFileId = upload.id;
   }
 
