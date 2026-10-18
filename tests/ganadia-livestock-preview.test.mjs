@@ -52,3 +52,11 @@ test("All rows are available for tenant-wide deduplication, not just first 20", 
   assert.equal(data.candidateCodes.length, 50);
   assert.equal(data.candidateCodes[49].code, "AN-50");
 });
+
+test("Reject unknown production line and malformed birth dates before writing", async () => {
+  const rows = [["Codigo", "Especie", "Linea", "Nacimiento"], ["B-1", "Bovino", "desconocida", "2023-02-30"]];
+  const data = await previewLivestockWorkbook(csv(rows), "data.csv");
+  assert.ok(data.issues.some(issue => issue.code === "UNKNOWN_PRODUCTIVE_LINE"));
+  assert.ok(data.issues.some(issue => issue.code === "INVALID_BIRTH_DATE"));
+  assert.equal(data.validRows, 0);
+});
