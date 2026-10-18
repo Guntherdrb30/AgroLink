@@ -85,7 +85,7 @@ export const uploadProfiles: Record<UploadUsageKey, UploadProfile> = {
   farm_primary_image: {
     usage: "FARM_PRIMARY_IMAGE",
     category: "IMAGE",
-    visibility: "PUBLIC",
+    visibility: "PRIVATE",
     maxSizeBytes: 10 * 1024 * 1024,
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     pathSegment: "farms/primary-images",
@@ -93,7 +93,7 @@ export const uploadProfiles: Record<UploadUsageKey, UploadProfile> = {
   farm_logo: {
     usage: "FARM_LOGO",
     category: "IMAGE",
-    visibility: "PUBLIC",
+    visibility: "PRIVATE",
     maxSizeBytes: 5 * 1024 * 1024,
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
     pathSegment: "farms/logos",
