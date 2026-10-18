@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { previewLivestockWorkbook, type MappingOverrides } from "@/lib/imports/livestock-preview";
+import { previewLivestockWorkbook, normalizeImportProductiveLine, parseImportBirthDate, type MappingOverrides } from "@/lib/imports/livestock-preview";
 
 function enumSex(raw: string): "MALE" | "FEMALE" | "UNKNOWN" {
   const sex = raw.trim().toLowerCase();
@@ -8,24 +8,6 @@ function enumSex(raw: string): "MALE" | "FEMALE" | "UNKNOWN" {
   if (["f", "hembra", "femenino"].includes(sex)) return "FEMALE";
   return "UNKNOWN";
 }
-function enumLine(raw: string): "BEEF" | "DAIRY" | "DUAL_PURPOSE" | "BREEDING" | "WORK" | "OTHER" {
-  const line = raw.trim().toLowerCase();
-  if (["ceba", "carne", "engorde"].includes(line)) return "BEEF";
-  if (["leche", "lechero"].includes(line)) return "DAIRY";
-  if (["doble proposito", "doble propósito"].includes(line)) return "DUAL_PURPOSE";
-  if (["cria", "cría", "reproduccion", "reproducción"].includes(line)) return "BREEDING";
-  if (["trabajo"].includes(line)) return "WORK";
-  if (!line) return "OTHER";
-  throw new Error("UNKNOWN_PRODUCTIVE_LINE");
-}
-function dateOrNull(raw: string): Date | null {
-  if (!raw.trim()) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw new Error("INVALID_BIRTH_DATE");
-  const d = new Date(raw + "T00:00:00.000Z");
-  if (!Number.isFinite(d.getTime()) || d.toISOString().slice(0, 10) !== raw || d > new Date()) throw new Error("INVALID_BIRTH_DATE");
-  return d;
-}
-
 /**
  * All-or-nothing, tenant-scoped write; disabled by default. The uploaded
  * file is parsed a second time on the server, never trusted from preview JSON.
@@ -48,8 +30,8 @@ export async function commitLivestockImport(params: {
     breed: row.breed.trim(),
     sex: enumSex(row.sex),
     weight: row.weight ? new Prisma.Decimal(row.weight.replace(",", ".")) : null,
-    line: enumLine(row.productiveLine),
-    birthDate: dateOrNull(row.birthDate),
+    line: normalizeImportProductiveLine(row.productiveLine)!,
+    birthDate: row.birthDate ? parseImportBirthDate(row.birthDate) : null,
     lot: row.lot.trim(),
   }));
   const codes = rows.map(r => r.code);
