@@ -22,3 +22,9 @@ test("only most recent event defines pending control", () => {
   const mk = (id, date, next) => ({id, dateIso: date, createdAtIso: date, note:null, actorName:null,details:{module:"GANADIA_REPRODUCTION",kind:"FOLLOW_UP",nextCheckAt:next}});
   assert.equal(getNextReproductionCheck([mk("one","2026-10-01","2026-11-01"),mk("two","2026-10-18",undefined)]),null);
 });
+
+test("Calf identity requires sex and sire may only be recorded for service or calving", () => {
+  assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "CALVING", calfCode: "TERN-01" }).success, false);
+  assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "CALVING", calfCode: "TERN-01", calfSex: "MALE" }).success, true);
+  assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "PREGNANCY_CHECK", pregnancyResult: "POSITIVE", sireId: base.animalId }).success, false);
+});
