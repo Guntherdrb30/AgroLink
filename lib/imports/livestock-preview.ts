@@ -22,7 +22,7 @@ export const IMPORT_FIELDS = {
   visualId: "Identificación visual",
 } as const;
 export type Field = keyof typeof IMPORT_FIELDS;
-export type MappingOverrides = Partial<Record<Field, number>>;
+export type MappingOverrides = Partial<Record<Field, number | null>>;
 
 const ALIASES: Record<Field, string[]> = {
   internalCode: ["codigo", "codigo animal", "codigo interno", "id animal", "identificador", "numero", "nro", "arete", "caravana"],
@@ -64,6 +64,8 @@ export type LivestockPreview = {
   truncated: boolean;
   warnings: string[];
   checkedExistingCodes?: boolean;
+  /** Internal-only comparison input; strip from HTTP response. */
+  candidateCodes: Array<{ row: number; code: string; valid: boolean }>;
 };
 
 function norm(value: unknown) {
@@ -159,8 +161,12 @@ export async function previewLivestockWorkbook(
     if (field && positions[field] === undefined) positions[field] = i;
   }
   for (const [field, rawIndex] of Object.entries(overrides)) {
-    if (!(field in IMPORT_FIELDS) || !Number.isSafeInteger(rawIndex) ||
-        rawIndex < 0 || rawIndex >= headers.length || !headers[rawIndex]) {
+    if (!(field in IMPORT_FIELDS)) throw new Error("INVALID_COLUMN_MAPPING");
+    if (rawIndex === null) {
+      delete positions[field as Field];
+      continue;
+    }
+    if (!Number.isSafeInteger(rawIndex) || rawIndex < 0 || rawIndex >= headers.length || !headers[rawIndex]) {
       throw new Error("INVALID_COLUMN_MAPPING");
     }
     positions[field as Field] = rawIndex;
@@ -175,6 +181,7 @@ export async function previewLivestockWorkbook(
   const truncated = body.length > MAX_PREVIEW_ROWS;
   const seen = new Set<string>();
   const previewRows: PreviewRow[] = [], issues: PreviewIssue[] = [];
+  const candidateCodes: LivestockPreview['candidateCodes'] = [];
   let validRows = 0, rowCount = 0;
   for (const [index, row] of body.slice(0, MAX_PREVIEW_ROWS).entries()) {
     if (!Array.isArray(row) || row.every(x => !cellText(x))) continue;
@@ -193,6 +200,7 @@ export async function previewLivestockWorkbook(
       rowIssues.push({ row: sourceRow, field: "sexo", code: "UNRECOGNIZED_SEX" });
     if (weight && !validWeight(weight)) rowIssues.push({ row: sourceRow, field: "peso", code: "INVALID_WEIGHT" });
     if (rowIssues.length === 0) validRows++;
+    if (code) candidateCodes.push({ row: sourceRow, code, valid: rowIssues.length === 0 });
     issues.push(...rowIssues);
     if (previewRows.length < 20) previewRows.push({
       sourceRow, internalCode: code, species: getCell(row, positions.species), breed: getCell(row, positions.breed),
@@ -206,5 +214,5 @@ export async function previewLivestockWorkbook(
   if (unknownHeaders.length) warnings.push("Hay columnas sin asignación; puedes mapearlas manualmente.");
   return { status: "PREVIEW_ONLY", sheetName: name, headers, mapping, mappingPositions: positions,
     unknownHeaders, rowCount, validRows, issueCount: issues.length, issues: issues.slice(0, 100),
-    previewRows, truncated, warnings };
+    previewRows, truncated, warnings, candidateCodes };
 }
