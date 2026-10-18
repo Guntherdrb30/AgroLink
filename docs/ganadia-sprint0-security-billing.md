@@ -15,12 +15,11 @@ Estado: inicio de desarrollo, sin aprobacion para desplegar ni activar cobros.
 El codigo de `lib/blob/storage.ts` sigue lanzando `PRIVATE_STORAGE_NOT_CONFIGURED`.
 Esto es correcto mientras no exista un almacen privado operativo.
 
-Se constato en Vercel que `agro-link` no tiene variables de Blob configuradas
-(consulta de nombres, sin leer secretos). **No cargar cedulas, RIF o archivos Excel reales.**
+El 18/10/2026 se creo el almacen privado `ganadia-private-documents` (Vercel Blob, region `iad1`, identificador `store_HLFpUMKdXyzH18nh`) vinculado al proyecto `agro-link`. Vercel agrega `BLOB_READ_WRITE_TOKEN` a los tres entornos. **El aprovisionamiento esta completado; la integracion de SDK, autorizacion de descargas y pruebas de aislamiento siguen pendientes. No cargar cedulas, RIF o archivos Excel reales.**
 
 Para habilitar, se requiere:
-1. Confirmacion explicita para aprovisionar un Blob privado (puede generar costos).
-2. Crear/conectar un almacen privado independiente de imagenes publicas.
+1. COMPLETADO: autorizacion del usuario y aprovisionamiento de Blob privado (recurso facturable).
+2. COMPLETADO: conectar el almacen privado al proyecto agro-link.
 3. Actualizar `@vercel/blob` a >= 2.3 y lockfile de forma reproducible.
 4. Implementar rutas autenticadas por tenant y rol para lectura/descarga, con `get(path, { access: "private" })`.
 5. Migrar listas de documentos para que enlacen a rutas autenticadas por ID y nunca URLs del proveedor.
