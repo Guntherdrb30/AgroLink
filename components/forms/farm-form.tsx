@@ -122,13 +122,12 @@ async function uploadPrivateFarmImage(
 
 export function FarmForm({ mode, farm }: FarmFormProps) {
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (uploading || saving) return;
+    if (uploading) return;
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -254,8 +253,8 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
       {progress && <p role="status" className="text-sm text-muted-foreground">{progress}</p>}
       {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
       <div>
-        <Button type="submit" disabled={uploading || saving}>
-          {uploading || saving ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}
+        <Button type="submit" disabled={uploading}>
+          {uploading ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}
         </Button>
       </div>
     </form>
