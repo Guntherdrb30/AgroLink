@@ -1,3 +1,4 @@
+import { isReproductionMetadata, getNextReproductionCheck, type ReproductionRecord } from "@/lib/livestock/reproduction";
 import type {
   AnimalHealthStatus,
   AnimalProductiveLine,
@@ -98,6 +99,12 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
     return null;
   }
 
+  const reproductionHistory: ReproductionRecord[] = animal.events.filter(event => isReproductionMetadata(event.metadata)).map(event => ({
+    id: event.id, dateIso: event.eventDate.toISOString(), createdAtIso: event.createdAt.toISOString(),
+    note: event.description, actorName: event.actor?.name ?? event.actor?.email ?? null,
+    details: event.metadata as unknown as ReproductionRecord["details"],
+  })).sort((a, b) => b.dateIso.localeCompare(a.dateIso));
+  const nextReproductionCheckAt = getNextReproductionCheck(reproductionHistory);
   const timeline = [
     ...animal.events.map((event) => ({
       id: `event-${event.id}`,
@@ -221,6 +228,8 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
       recordedByName: record.recordedBy?.name ?? record.recordedBy?.email ?? null,
     })),
     timeline,
+    reproductionHistory,
+    nextReproductionCheckAt,
     formOptions: {
       farms: farms.map((farm) => ({
         id: farm.id,
