@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     preview.checkedExistingCodes = true;
     // Do not expose internal full-batch codes beyond the first 20 preview rows.
     preview.candidateCodes = [];
+    preview.importRows = [];
     return NextResponse.json({ farm, ...preview }, {
       headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" },
     });
