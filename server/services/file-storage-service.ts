@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { buildBlobPath, deleteBlobFile, uploadToBlob } from "@/lib/blob/storage";
+import { resolveFileVisibility } from "@/lib/blob/visibility-policy";
 import { getUploadProfile, type UploadUsageKey } from "@/lib/blob/config";
 import { createFileStorageRecord, deleteFileStorageRecord, findFileStorageById } from "@/server/repositories/file-storage-repository";
 
@@ -32,7 +33,7 @@ export async function storeFile(params: StoreFileParams) {
   assertFileAllowed(params.file, params.usage);
 
   const profile = getUploadProfile(params.usage);
-  const visibility = params.visibility ?? profile.visibility;
+  const visibility = resolveFileVisibility(profile.visibility, params.visibility);
   const path = buildBlobPath({
     tenantId: params.tenantId,
     visibility,
