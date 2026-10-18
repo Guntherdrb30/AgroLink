@@ -36,6 +36,7 @@ const labels: Record<string, string> = {
   UNRECOGNIZED_SEX: "Sexo no reconocido",
   INVALID_WEIGHT: "El peso debe ser un número válido, mayor a cero",
   EXISTS_IN_FARM: "Animal ya registrado en esta finca",
+  EXISTS_IN_TENANT: "Código ya registrado en esta empresa",
 };
 const errors: Record<string, string> = {
   INVALID_PREVIEW_FILE_SIZE: "El archivo debe pesar como máximo 2 MB.",
@@ -59,7 +60,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Result | null>(null);
-  const [manualMap, setManualMap] = useState<Record<string, number>>({});
+  const [manualMap, setManualMap] = useState<Record<string, number | null>>({});
 
   function clearPreview() {
     setPreview(null);
@@ -182,11 +183,11 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
               }).map(([key, label]) => (
                 <label key={key} className="block text-sm">
                   <span className="mb-1 block font-medium">{label}</span>
-                  <select value={manualMap[key] ?? preview.mappingPositions?.[key] ?? ""}
+                  <select value={Object.prototype.hasOwnProperty.call(manualMap, key) ? (manualMap[key] ?? "") : (preview.mappingPositions?.[key] ?? "")}
                     onChange={e => {
                       setManualMap(current => {
                         const next = { ...current };
-                        if (e.target.value === "") delete next[key];
+                        if (e.target.value === "") next[key] = null;
                         else next[key] = Number(e.target.value);
                         return next;
                       });
