@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/db/prisma";
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { assertIsolatedPreviewDatabase } from "@/lib/security/preview-db-isolation";
 import { hasPlatformRole, hasTenantRole, type PlatformRole, type TenantRole } from "@/lib/permissions/rbac";
 import { findUserAuthContextById } from "@/server/repositories/user-repository";
@@ -99,6 +100,7 @@ export async function requireRole(requirement: RoleRequirement) {
 }
 
 export async function isCurrentTenantOperational() {
+  if (!isBusinessVerificationRequired()) return true;
   const profile = await getCurrentTenantVerification();
   return profile?.status === "VERIFIED";
 }
@@ -106,7 +108,9 @@ export async function isCurrentTenantOperational() {
 export async function requireOperationalTenant() {
   const context = await getCurrentTenant();
   if (!context) redirect("/onboarding");
-  const profile = await getCurrentTenantVerification();
-  if (profile?.status !== "VERIFIED") redirect("/verification");
+  if (isBusinessVerificationRequired()) {
+    const profile = await getCurrentTenantVerification();
+    if (profile?.status !== "VERIFIED") redirect("/verification");
+  }
   return context;
 }
