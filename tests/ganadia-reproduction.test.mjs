@@ -24,6 +24,7 @@ test("only most recent event defines pending control", () => {
 });
 
 test("Calf identity requires sex and sire may only be recorded for service or calving", () => {
+  assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "CALVING" }).success, false);
   assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "CALVING", calfCode: "TERN-01" }).success, false);
   assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "CALVING", calfCode: "TERN-01", calfSex: "MALE" }).success, true);
   assert.equal(reproductionRecordSchema.safeParse({ ...base, kind: "PREGNANCY_CHECK", pregnancyResult: "POSITIVE", sireId: base.animalId }).success, false);
