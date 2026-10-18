@@ -1,5 +1,7 @@
 "use server";
 
+import { reproductionRecordSchema } from "@/lib/validators/reproduction";
+import { registerReproductionEvent } from "@/server/services/livestock-reproduction-service";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -260,4 +262,31 @@ export async function addAnimalTreatmentAction(formData: FormData) {
 
   await addAnimalTreatmentForTenant(tenantContext.tenant.id, user.id, parsed.data);
   revalidatePath(`/livestock/${parsed.data.animalId}`);
+}
+
+export async function addReproductionRecordAction(formData: FormData) {
+  const { user, tenantContext } = await requireRole({ tenant: [...managementRoles] });
+  await requireOperationalTenant();
+  if (!tenantContext) redirect("/livestock?error=tenant");
+  const parsed = reproductionRecordSchema.safeParse({
+    animalId: formData.get("animalId"),
+    kind: formData.get("kind"),
+    eventDate: formData.get("eventDate"),
+    method: formData.get("method") || undefined,
+    pregnancyResult: formData.get("pregnancyResult") || undefined,
+    sireCode: formData.get("sireCode") || undefined,
+    calfCode: formData.get("calfCode") || undefined,
+    nextCheckAt: formData.get("nextCheckAt") || undefined,
+    expectedCalvingAt: formData.get("expectedCalvingAt") || undefined,
+    note: formData.get("note") || undefined,
+  });
+  if (!parsed.success) redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=reproduction_validation`);
+  try {
+    await registerReproductionEvent(tenantContext.tenant.id, user.id, parsed.data);
+  } catch {
+    redirect(`/livestock/${parsed.data.animalId}?error=reproduction_failed`);
+  }
+  revalidatePath("/livestock");
+  revalidatePath(`/livestock/${parsed.data.animalId}`);
+  redirect(`/livestock/${parsed.data.animalId}?success=reproduction`);
 }
