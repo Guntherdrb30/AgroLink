@@ -95,7 +95,7 @@ export const uploadProfiles: Record<UploadUsageKey, UploadProfile> = {
     category: "IMAGE",
     visibility: "PRIVATE",
     maxSizeBytes: 5 * 1024 * 1024,
-    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     pathSegment: "farms/logos",
   },
   operation_sheet: {
