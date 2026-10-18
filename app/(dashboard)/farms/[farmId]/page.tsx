@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 
 import { deleteFarmAction } from "@/server/actions/farm-actions";
 import { findFarmById } from "@/server/repositories/farm-repository";
@@ -31,17 +32,23 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
     notFound();
   }
 
+  const verificationRequired = isBusinessVerificationRequired();
+
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Detalle de finca"
         title={farm.name}
-        description="Actualiza datos, administra activos y completa el expediente documental de verificacion."
+        description={verificationRequired
+          ? "Actualiza datos, administra activos y completa el expediente documental de verificacion."
+          : "Actualiza los datos y activos de tu finca. La verificacion documental esta pospuesta durante las pruebas."}
       />
       <div className="flex items-center gap-3">
-        <VerificationBadge
-          status={farm.verificationProfile?.status ?? "PENDING"}
-        />
+        {verificationRequired ? (
+          <VerificationBadge status={farm.verificationProfile?.status ?? "PENDING"} />
+        ) : (
+          <span className="text-sm font-medium text-muted-foreground">Modo pruebas: sin verificacion documental</span>
+        )}
         <span className="text-sm text-muted-foreground">{farm.location || "Ubicacion pendiente"}</span>
       </div>
       <Card>
@@ -71,7 +78,7 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
           </form>
         </CardContent>
       </Card>
-      {farm.verificationProfile ? (
+      {verificationRequired && farm.verificationProfile ? (
         <Card>
           <CardHeader>
             <CardTitle>Verificacion documental</CardTitle>
@@ -88,7 +95,8 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
           </CardContent>
         </Card>
       ) : null}
-      <DocumentList
+      {verificationRequired ? (
+        <DocumentList
         title="Documentos cargados"
         documents={(farm.verificationProfile?.documents ?? []).map((document) => ({
           id: document.fileId ?? document.id,
@@ -98,7 +106,8 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
           blobUrl: document.blobUrl,
           mimeType: document.file?.mimeType ?? document.contentType,
         }))}
-      />
+        />
+      ) : null}
     </div>
   );
 }
