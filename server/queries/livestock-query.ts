@@ -99,6 +99,10 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
     return null;
   }
 
+  const sires = await (await import("@/lib/db/prisma")).prisma.animal.findMany({
+    where: { tenantId, speciesId: animal.speciesId, sex: "MALE", id: { not: animal.id } },
+    select: { id: true, internalCode: true, visualIdentification: true }, orderBy: { internalCode: "asc" },
+  });
   const reproductionHistory: ReproductionRecord[] = animal.events.filter(event => isReproductionMetadata(event.metadata)).map(event => ({
     id: event.id, dateIso: event.eventDate.toISOString(), createdAtIso: event.createdAt.toISOString(),
     note: event.description, actorName: event.actor?.name ?? event.actor?.email ?? null,
@@ -229,6 +233,7 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
     })),
     timeline,
     reproductionHistory,
+    sireOptions: sires.map(sire => ({ id: sire.id, label: sire.visualIdentification ? sire.internalCode + " - " + sire.visualIdentification : sire.internalCode })),
     nextReproductionCheckAt,
     formOptions: {
       farms: farms.map((farm) => ({
