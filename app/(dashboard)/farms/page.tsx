@@ -18,6 +18,7 @@ export default async function FarmsPage() {
   }
 
   const farms = await listFarmsByTenant(tenantContext.tenant.id);
+  const canEdit = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(tenantContext.membership.role);
 
   return (
     <div className="space-y-8">
@@ -28,14 +29,16 @@ export default async function FarmsPage() {
           ? "Este modulo crea fincas, prepara sus activos visuales y conecta el perfil documental requerido para verificacion."
           : "Crea y administra fincas para probar todas las funcionalidades. La verificacion documental se habilitara antes del lanzamiento."}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Nueva finca</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FarmForm mode="create" />
-        </CardContent>
-      </Card>
+      {canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nueva finca</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FarmForm mode="create" />
+          </CardContent>
+        </Card>
+      ) : null}
       <FarmList
         farms={farms.map((farm) => ({
           id: farm.id,

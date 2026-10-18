@@ -10,6 +10,7 @@ const isProtectedRoute = createRouteMatcher([
   "/admin/verification(.*)",
   "/onboarding(.*)",
   "/api/blob(.*)",
+  "/api/farms/media/sign(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

@@ -33,6 +33,8 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
   }
 
   const verificationRequired = isBusinessVerificationRequired();
+  const canEdit = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(tenantContext.membership.role);
+  const canDelete = ["TENANT_OWNER", "TENANT_ADMIN"].includes(tenantContext.membership.role);
 
   return (
     <div className="space-y-8">
@@ -56,7 +58,7 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
           <CardTitle>Editar finca</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <FarmForm
+          {canEdit ? <FarmForm
             mode="edit"
             farm={{
               id: farm.id,
@@ -69,13 +71,13 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
               primaryImageUrl: farm.primaryImageUrl,
               logoUrl: farm.logoUrl,
             }}
-          />
-          <form action={deleteFarmAction}>
+          /> : <p className="text-sm text-muted-foreground">Tu rol permite consultar esta finca, pero no editarla.</p>}
+          {canDelete ? <form action={deleteFarmAction}>
             <input type="hidden" name="farmId" value={farm.id} />
             <Button type="submit" variant="outline">
               Eliminar finca
             </Button>
-          </form>
+          </form> : null}
         </CardContent>
       </Card>
       {verificationRequired && farm.verificationProfile ? (
