@@ -23,6 +23,8 @@ type Result = {
   warnings: string[];
   unknownHeaders: string[];
   mapping: Record<string, string>;
+  mappingPositions: Record<string, number>;
+  headers: string[];
   truncated: boolean;
 };
 
@@ -33,10 +35,14 @@ const labels: Record<string, string> = {
   UNSAFE_FORMULA: "Fórmula no permitida en el código",
   UNRECOGNIZED_SEX: "Sexo no reconocido",
   INVALID_WEIGHT: "El peso debe ser un número válido, mayor a cero",
+  EXISTS_IN_FARM: "Animal ya registrado en esta finca",
 };
 const errors: Record<string, string> = {
   INVALID_PREVIEW_FILE_SIZE: "El archivo debe pesar como máximo 2 MB.",
   UNSUPPORTED_PREVIEW_EXTENSION: "Solo se admiten archivos CSV o XLSX sin macros.",
+  UNSAFE_PREVIEW_ARCHIVE: "El Excel contiene una estructura no permitida o demasiado grande.",
+  INVALID_COLUMN_MAPPING: "Una columna asignada no es válida.",
+  DUPLICATE_COLUMN_MAPPING: "Una columna no puede asignarse a dos campos.",
   INVALID_PREVIEW_WORKBOOK: "No se pudo leer el archivo. Verifica que no esté dañado.",
   EMPTY_PREVIEW_WORKBOOK: "No se encontraron filas en el archivo.",
   ANIMAL_CODE_HEADER_REQUIRED: "No se reconoció una columna de código o identificación de animal.",
@@ -53,6 +59,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Result | null>(null);
+  const [manualMap, setManualMap] = useState<Record<string, number>>({});
 
   function clearPreview() {
     setPreview(null);
@@ -77,6 +84,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
     const body = new FormData();
     body.append("farmId", farmId);
     body.append("file", file);
+    if (Object.keys(manualMap).length) body.append("mapping", JSON.stringify(manualMap));
     setLoading(true);
     try {
       const response = await fetch("/api/imports/livestock/preview", {
@@ -101,7 +109,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
 
   return (
     <div className="space-y-7">
-      <form onSubmit={onSubmit} className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-7">
+      <form id="ganadia-import-form" onSubmit={onSubmit} className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-7">
         <div className="mb-5 flex items-start gap-3">
           <FileSpreadsheet className="mt-1 size-6 text-primary" aria-hidden="true" />
           <div>
@@ -122,7 +130,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
           <div className="space-y-2">
             <label htmlFor="import-file" className="block text-sm font-medium">Archivo CSV o Excel (.xlsx)</label>
             <input id="import-file" name="file" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              required onChange={(event) => { setFile(event.target.files?.[0] ?? null); clearPreview(); }}
+              required onChange={(event) => { setFile(event.target.files?.[0] ?? null); setManualMap({}); clearPreview(); }}
               className="block w-full cursor-pointer rounded-xl border border-border bg-white p-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium" />
             <p className="text-xs text-muted-foreground">Máximo 2 MB y 500 animales por revisión. Solo se analiza el archivo en memoria; no se guarda.</p>
           </div>
@@ -163,6 +171,39 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
             </div>
           </div>
 
+          <div className="rounded-3xl border border-border bg-white p-5">
+            <h3 className="font-semibold">Asignar columnas del archivo</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Corrige las asignaciones automáticas. Pulsa “Revisar archivo” para validar nuevamente.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries({
+                internalCode: "Código del animal", species: "Especie", breed: "Raza",
+                sex: "Sexo", initialWeight: "Peso", productiveLine: "Línea productiva",
+                birthDate: "Nacimiento", lot: "Lote", visualId: "Identificación visual",
+              }).map(([key, label]) => (
+                <label key={key} className="block text-sm">
+                  <span className="mb-1 block font-medium">{label}</span>
+                  <select value={manualMap[key] ?? preview.mappingPositions?.[key] ?? ""}
+                    onChange={e => {
+                      setManualMap(current => {
+                        const next = { ...current };
+                        if (e.target.value === "") delete next[key];
+                        else next[key] = Number(e.target.value);
+                        return next;
+                      });
+                    }}
+                    className="h-10 w-full rounded-xl border border-border bg-white px-2">
+                    <option value="">Sin asignar</option>
+                    {preview.headers.map((header, index) => header ? <option value={index} key={index}>{header}</option> : null)}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <Button type="button" variant="outline" className="mt-4"
+              disabled={loading} onClick={() => {
+                const form = document.querySelector<HTMLFormElement>("#ganadia-import-form");
+                form?.requestSubmit();
+              }}>Aplicar mapeo y volver a analizar</Button>
+          </div>
           <div className="overflow-hidden rounded-3xl border border-border bg-white">
             <div className="border-b border-border px-5 py-4">
               <h3 className="font-semibold">Vista previa de registros</h3>
