@@ -7,6 +7,7 @@ import { AnimalForm } from "@/components/livestock/animal-form";
 import { AnimalGenealogy } from "@/components/livestock/animal-genealogy";
 import { AnimalHealthHistory } from "@/components/livestock/animal-health-history";
 import { AnimalRecordForms } from "@/components/livestock/animal-record-forms";
+import { AnimalReproduction } from "@/components/livestock/animal-reproduction";
 import { AnimalSummary } from "@/components/livestock/animal-summary";
 import { AnimalTimeline } from "@/components/livestock/animal-timeline";
 import { AnimalWeightHistory } from "@/components/livestock/animal-weight-history";
@@ -108,6 +109,7 @@ export default async function AnimalDetailPage({
         </Card>
       ) : null}
 
+      <AnimalReproduction animalId={data.animal.id} sex={data.animal.sex} canManage={canManage} records={data.reproductionHistory} nextCheckAt={data.nextReproductionCheckAt} />
       <AnimalWeightHistory records={data.weightHistory} />
       <AnimalHealthHistory
         vaccinations={data.vaccinationHistory}
