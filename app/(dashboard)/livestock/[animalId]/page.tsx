@@ -109,7 +109,7 @@ export default async function AnimalDetailPage({
         </Card>
       ) : null}
 
-      <AnimalReproduction animalId={data.animal.id} sex={data.animal.sex} canManage={canManage} records={data.reproductionHistory} nextCheckAt={data.nextReproductionCheckAt} />
+      <AnimalReproduction animalId={data.animal.id} sex={data.animal.sex} canManage={canManage} records={data.reproductionHistory} sireOptions={data.sireOptions} nextCheckAt={data.nextReproductionCheckAt} />
       <AnimalWeightHistory records={data.weightHistory} />
       <AnimalHealthHistory
         vaccinations={data.vaccinationHistory}
