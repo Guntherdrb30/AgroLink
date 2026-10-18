@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import {
   Building2,
   BarChart3,
@@ -42,7 +43,7 @@ export function DashboardSidebar({ tenantName }: DashboardSidebarProps) {
         </div>
       </div>
       <nav className="space-y-2">
-        {items.map((item) => {
+        {items.filter(item => isBusinessVerificationRequired() || !["/verification", "/admin/verification"].includes(item.href)).map((item) => {
           const Icon = item.icon;
 
           return (
