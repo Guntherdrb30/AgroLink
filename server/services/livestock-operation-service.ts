@@ -504,6 +504,9 @@ export async function saveOperationAnimalResultForTenant(
   if (!operationAnimal || operationAnimal.tenantId !== tenantId) {
     throw new Error("OPERATION_ANIMAL_NOT_FOUND");
   }
+  if (operationAnimal.appliedToAnimalHistory || operationAnimal.operation.status === "APPLIED") {
+    throw new Error("OPERATION_ALREADY_APPLIED");
+  }
 
   const operationAnimalRecord = await updateOperationAnimal(input.operationAnimalId, {
     weightKg: normalizeDecimal(input.weightKg),
