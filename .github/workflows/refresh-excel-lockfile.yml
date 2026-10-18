@@ -27,5 +27,7 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add package-lock.json
             git commit -m "build: refresh lockfile for safe Excel preview readers"
+            git fetch origin feat/ganadia-sprint1-excel-preview
+            git rebase origin/feat/ganadia-sprint1-excel-preview
             git push origin HEAD:feat/ganadia-sprint1-excel-preview
           fi
