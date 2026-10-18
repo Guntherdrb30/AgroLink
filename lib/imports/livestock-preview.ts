@@ -89,6 +89,26 @@ function validWeight(weight: string) {
   return weight.trim() !== "" && Number.isFinite(n) && n > 0 && n <= 5000;
 }
 
+/** Shared normalization: previews and commits must enforce identical rules. */
+export function normalizeImportProductiveLine(raw: string):
+  "BEEF" | "DAIRY" | "DUAL_PURPOSE" | "BREEDING" | "WORK" | "OTHER" | null {
+  const value = norm(raw);
+  if (!value) return "OTHER";
+  if (["ceba", "carne", "engorde"].includes(value)) return "BEEF";
+  if (["leche", "lechero"].includes(value)) return "DAIRY";
+  if (["doble proposito"].includes(value)) return "DUAL_PURPOSE";
+  if (["cria", "reproduccion"].includes(value)) return "BREEDING";
+  if (value === "trabajo") return "WORK";
+  return null;
+}
+export function parseImportBirthDate(raw: string): Date | null {
+  if (!raw.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const value = new Date(raw + "T00:00:00.000Z");
+  if (!Number.isFinite(value.getTime()) || value.toISOString().slice(0, 10) !== raw ||
+      value > new Date()) return null;
+  return value;
+}
+
 /** Inspect ZIP central directory before an XLSX parser inflates XML. */
 export function assertReasonableXlsxZip(bytes: Uint8Array) {
   if (bytes.length < 22) throw new Error("UNSAFE_PREVIEW_ARCHIVE");
@@ -201,6 +221,12 @@ export async function previewLivestockWorkbook(
     if (sex && !["m", "f", "macho", "hembra", "masculino", "femenino"].includes(norm(sex)))
       rowIssues.push({ row: sourceRow, field: "sexo", code: "UNRECOGNIZED_SEX" });
     if (weight && !validWeight(weight)) rowIssues.push({ row: sourceRow, field: "peso", code: "INVALID_WEIGHT" });
+    const lineValue = getCell(row, positions.productiveLine);
+    if (normalizeImportProductiveLine(lineValue) === null)
+      rowIssues.push({ row: sourceRow, field: "linea", code: "UNKNOWN_PRODUCTIVE_LINE" });
+    const birthValue = getCell(row, positions.birthDate);
+    if (birthValue && parseImportBirthDate(birthValue) === null)
+      rowIssues.push({ row: sourceRow, field: "nacimiento", code: "INVALID_BIRTH_DATE" });
     const species = getCell(row, positions.species);
     if (!species) rowIssues.push({ row: sourceRow, field: "especie", code: "REQUIRED_SPECIES" });
     if (rowIssues.length === 0) validRows++;
