@@ -32,6 +32,9 @@ test("Manual mapping is supported and duplicate mapping forbidden", async () => 
   const data = await previewLivestockWorkbook(bytes, "hato.csv", { internalCode: 0, species: 1 });
   assert.equal(data.validRows, 1);
   assert.equal(data.mapping.internalCode, "Mi identificador");
+  assert.equal(data.candidateCodes.length, 1);
+  const cleared = await previewLivestockWorkbook(csv([["Codigo", "Especie"], ["A-1", "Bovino"]]), "data.csv", { species: null });
+  assert.equal(cleared.mapping.species, undefined);
   await assert.rejects(previewLivestockWorkbook(bytes, "hato.csv", { internalCode: 0, species: 0 }), /DUPLICATE_COLUMN_MAPPING/);
 });
 
@@ -39,4 +42,13 @@ test("Reject invalid extension, archive and oversized input", async () => {
   await assert.rejects(previewLivestockWorkbook(new Uint8Array(MAX_PREVIEW_BYTES + 1), "a.csv"), /INVALID_PREVIEW_FILE_SIZE/);
   await assert.rejects(previewLivestockWorkbook(csv([["Codigo"], ["A"]]), "macro.xlsm"), /UNSUPPORTED_PREVIEW_EXTENSION/);
   assert.throws(() => assertReasonableXlsxZip(new Uint8Array(128)), /UNSAFE_PREVIEW_ARCHIVE/);
+});
+
+test("All rows are available for tenant-wide deduplication, not just first 20", async () => {
+  const rows = [["Codigo", "Especie"]];
+  for (let i = 1; i <= 50; i++) rows.push([`AN-${i}`, "Bovino"]);
+  const data = await previewLivestockWorkbook(csv(rows), "inventory.csv");
+  assert.equal(data.previewRows.length, 20);
+  assert.equal(data.candidateCodes.length, 50);
+  assert.equal(data.candidateCodes[49].code, "AN-50");
 });
