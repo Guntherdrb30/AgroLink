@@ -3,7 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 
 import { createFarmAction, updateFarmAction } from "@/server/actions/farm-actions";
-import { validateFarmUploadFile, type FarmUploadKind } from "@/lib/blob/farm-upload-policy";
+import { MAX_SERVER_FARM_UPLOAD_BYTES, validateFarmUploadFile, type FarmUploadKind } from "@/lib/blob/farm-upload-policy";
 import { FileDropzone } from "@/components/storage/file-dropzone";
 import { FilePreviewGrid } from "@/components/storage/file-preview-grid";
 import { Button } from "@/components/ui/button";
@@ -25,44 +25,100 @@ type FarmFormProps = {
   };
 };
 
-type SignedUpload = { uploadUrl: string; pathname: string };
+/**
+ * Vercel Blob's private signed-PUT host is cross-origin. A direct browser PUT
+ * may be blocked on mobile networks/CORS, so stage a safely-sized image via
+ * our same-origin, Clerk-protected API instead. Larger source images are
+ * optimized locally; the raw file is never passed to a Server Action.
+ */
+async function optimizeImageForFarm(file: File): Promise<File> {
+  if (file.size <= MAX_SERVER_FARM_UPLOAD_BYTES) return file;
+
+  if (typeof createImageBitmap !== "function") {
+    throw new Error("Este navegador no puede optimizar imágenes grandes. Abre la página en Chrome actualizado.");
+  }
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("No se pudo abrir la fotografía seleccionada. Comprueba que no esté dañada.");
+  }
+
+  try {
+    if (!bitmap.width || !bitmap.height) throw new Error("La imagen no tiene dimensiones válidas.");
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) throw new Error("Este navegador no puede preparar la imagen para su carga.");
+
+    for (const maxEdge of [3200, 2800, 2400, 2000, 1600, 1200, 900]) {
+      const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+      for (const quality of [0.9, 0.8, 0.68, 0.55]) {
+        const compressed = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, "image/webp", quality));
+        if (!compressed || compressed.type !== "image/webp") {
+          throw new Error("El navegador no admite la optimización WEBP. Intenta con otra fotografía.");
+        }
+        if (compressed.size > 0 && compressed.size <= MAX_SERVER_FARM_UPLOAD_BYTES) {
+          const safeBase = file.name.replace(/\.[^.]+$/, "").slice(0, 80) || "finca";
+          return new File([compressed], safeBase + ".webp", {
+            type: "image/webp",
+            lastModified: Date.now(),
+          });
+        }
+      }
+    }
+    throw new Error("La fotografía es demasiado compleja para optimizarla. Prueba otra imagen.");
+  } finally {
+    bitmap.close();
+  }
+}
 
 async function uploadPrivateFarmImage(
-  file: File,
+  originalFile: File,
   kind: FarmUploadKind,
   farmId: string | null,
+  onProgress: (message: string) => void,
 ): Promise<string> {
-  const error = validateFarmUploadFile(kind, file.name, file.type, file.size);
-  if (error) throw new Error(error);
+  const validation = validateFarmUploadFile(kind, originalFile.name, originalFile.type, originalFile.size);
+  if (validation) throw new Error(validation);
 
-  const signedResponse = await fetch("/api/farms/media/sign", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      kind, farmId, filename: file.name, contentType: file.type, size: file.size,
-    }),
-  });
-  const signed = await signedResponse.json().catch(() => null) as
-    (Partial<SignedUpload> & { error?: string }) | null;
-  if (!signedResponse.ok || !signed?.uploadUrl || !signed.pathname) {
-    throw new Error(signed?.error || "No se pudo autorizar la carga. Revisa tu conexión o sesión.");
+  if (originalFile.size > MAX_SERVER_FARM_UPLOAD_BYTES) {
+    onProgress("Optimizando la fotografía en tu teléfono, sin perder la imagen original...");
   }
+  const file = await optimizeImageForFarm(originalFile);
+  onProgress(kind === "logo" ? "Subiendo logo de forma privada..." : "Subiendo imagen de forma privada...");
 
-  // Direct browser -> PRIVATE Blob. No image body passes through a Server Action.
-  const uploadedResponse = await fetch(signed.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-  if (!uploadedResponse.ok) {
-    throw new Error("No se pudo subir la imagen. Comprueba tu conexión e inténtalo de nuevo.");
+  const query = new URLSearchParams({ kind, filename: file.name });
+  if (farmId) query.set("farmId", farmId);
+  let response: Response;
+  try {
+    response = await fetch("/api/farms/media/stage?" + query, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+  } catch {
+    throw new Error("No se pudo conectar con el servidor de imágenes. Comprueba la conexión e inténtalo de nuevo.");
   }
-  const uploaded = await uploadedResponse.json().catch(() => null) as { pathname?: string } | null;
-  if (uploaded?.pathname !== signed.pathname) {
-    throw new Error("La carga no pudo confirmarse. Vuelve a intentarlo.");
+  const payload = await response.json().catch(() => null) as {
+    pathname?: string;
+    error?: string;
+  } | null;
+  if (!response.ok || !payload?.pathname) {
+    throw new Error(payload?.error ?? (
+      response.status === 413
+        ? "La foto es demasiado grande para esta conexión. Prueba otra fotografía."
+        : "No se pudo subir la imagen. Vuelve a intentarlo."
+    ));
   }
-  return signed.pathname;
+  return payload.pathname;
 }
 
 export function FarmForm({ mode, farm }: FarmFormProps) {
@@ -92,8 +148,7 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
         ["logo", logoFile],
       ] as const) {
         if (file instanceof File && file.size > 0) {
-          setProgress(kind === "logo" ? "Subiendo logo de forma privada..." : "Subiendo imagen principal de forma privada...");
-          const pathname = await uploadPrivateFarmImage(file, kind, farm?.id ?? null);
+          const pathname = await uploadPrivateFarmImage(file, kind, farm?.id ?? null, setProgress);
           formData.set(kind === "logo" ? "logoPath" : "primaryImagePath", pathname);
         }
       }

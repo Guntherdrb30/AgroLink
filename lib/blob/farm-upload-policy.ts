@@ -5,6 +5,9 @@
  */
 export type FarmUploadKind = "primaryImage" | "logo";
 
+// Vercel Functions have a 4.5 MB request payload limit; keep a margin for transport.
+export const MAX_SERVER_FARM_UPLOAD_BYTES = 3_500_000;
+
 const allowedExtensions: Record<string, readonly string[]> = {
   "image/jpeg": ["jpg", "jpeg"],
   "image/png": ["png"],

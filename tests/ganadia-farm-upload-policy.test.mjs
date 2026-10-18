@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  createFarmUploadPath, farmUploadOriginalName, farmUploadPrefix,
+  MAX_SERVER_FARM_UPLOAD_BYTES, createFarmUploadPath, farmUploadOriginalName, farmUploadPrefix,
   isFarmUploadPathForActor, validateFarmUploadFile,
 } from "../lib/blob/farm-upload-policy.ts";
 
@@ -33,4 +33,11 @@ test("staged new farm asset is not attachable to an existing farm", () => {
   const path = createFarmUploadPath(newScope, "original.webp", nonce);
   assert.equal(isFarmUploadPathForActor(path, newScope), true);
   assert.equal(isFarmUploadPathForActor(path, scope), false);
+});
+
+
+test("staging upload stays below the platform 4.5MB request limit", () => {
+  assert.ok(MAX_SERVER_FARM_UPLOAD_BYTES < 4_500_000);
+  assert.ok(MAX_SERVER_FARM_UPLOAD_BYTES > 1_000_000);
+  assert.equal(validateFarmUploadFile("primaryImage", "sample.webp", "image/webp", MAX_SERVER_FARM_UPLOAD_BYTES), null);
 });
