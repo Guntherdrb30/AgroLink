@@ -60,3 +60,13 @@ test("Reject unknown production line and malformed birth dates before writing", 
   assert.ok(data.issues.some(issue => issue.code === "INVALID_BIRTH_DATE"));
   assert.equal(data.validRows, 0);
 });
+
+test("Visual identifiers and weights survive mapping for the import transaction", async () => {
+  const data = await previewLivestockWorkbook(csv([
+    ["Codigo", "Especie", "Identificacion visual", "Peso kg"],
+    ["BOV-101", "Bovino", "ARETE-123", "425"],
+  ]), "inventario.csv");
+  assert.equal(data.importRows.length, 1);
+  assert.equal(data.importRows[0].visualId, "ARETE-123");
+  assert.equal(data.importRows[0].weight, "425");
+});
