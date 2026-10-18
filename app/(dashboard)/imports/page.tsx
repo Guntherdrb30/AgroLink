@@ -18,7 +18,7 @@ export default async function LivestockImportsPage() {
         title="Revisa tu inventario ganadero desde Excel"
         description="Sube un archivo CSV o XLSX, identifica columnas y detecta errores antes de registrar animales en GanadIA."
       />
-      <LivestockImportPreview farms={farms.map(farm => ({ id: farm.id, name: farm.name }))} />
+      <LivestockImportPreview importEnabled={process.env.GANADIA_ENABLE_LIVESTOCK_IMPORT === "true"} farms={farms.map(farm => ({ id: farm.id, name: farm.name }))} />
     </div>
   );
 }
