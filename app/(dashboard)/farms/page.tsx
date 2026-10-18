@@ -1,4 +1,5 @@
 import { listFarmsByTenant } from "@/server/repositories/farm-repository";
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { requireRole } from "@/lib/auth/session";
 import { FarmForm } from "@/components/forms/farm-form";
 import { FarmList } from "@/components/farms/farm-list";
@@ -23,7 +24,9 @@ export default async function FarmsPage() {
       <PageHeader
         eyebrow="Fincas"
         title="Gestiona la base maestra de fincas de la empresa."
-        description="Este modulo crea fincas, prepara sus activos visuales y conecta el perfil documental requerido para verificacion."
+        description={isBusinessVerificationRequired()
+          ? "Este modulo crea fincas, prepara sus activos visuales y conecta el perfil documental requerido para verificacion."
+          : "Crea y administra fincas para probar todas las funcionalidades. La verificacion documental se habilitara antes del lanzamiento."}
       />
       <Card>
         <CardHeader>
