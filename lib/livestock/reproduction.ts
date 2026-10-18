@@ -8,7 +8,10 @@ export type ReproductionMetadata = {
   method?: "NATURAL" | "INSEMINATION";
   result?: PregnancyResult;
   sireCode?: string;
+  sireId?: string;
+  calfId?: string;
   calfCode?: string;
+  calfSex?: "MALE" | "FEMALE" | "UNKNOWN";
   nextCheckAt?: string;
   expectedCalvingAt?: string;
   stateAfter?: "OPEN" | "PREGNANT" | "LACTATING" | "BREEDING_MALE" | "CASTRATED" | "YOUNG" | "UNKNOWN";
