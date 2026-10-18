@@ -1,26 +1,29 @@
+/*
+ * GanadIA online-first PWA.
+ *
+ * Do not cache HTML, Next.js/RSC responses, Clerk identity endpoints or API
+ * responses. A previous cache-first worker pinned the old application shell,
+ * making production fixes invisible to installed mobile PWAs.
+ *
+ * Offline functionality must be reintroduced separately using a carefully
+ * scoped, versioned cache strategy that excludes authenticated content.
+ */
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open("agrolynk-shell-v1").then((cache) => {
-      return cache.addAll(["/", "/manifest.webmanifest"]);
-    }),
-  );
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return (
-        cachedResponse ||
-        fetch(event.request).catch(() => caches.match("/") || Response.error())
+  event.waitUntil(
+    (async () => {
+      const names = await caches.keys();
+      await Promise.all(
+        names
+          .filter((name) => name.startsWith("agrolynk-shell-"))
+          .map((name) => caches.delete(name)),
       );
-    }),
+      await self.clients.claim();
+    })(),
   );
 });
+
+// No fetch interception: the active version always comes from the network.
