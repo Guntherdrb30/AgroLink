@@ -75,7 +75,7 @@ export default async function VerificationPage() {
       <DocumentList
         title="Documentos de cuenta"
         documents={tenantProfile.documents.map((document) => ({
-          id: document.id,
+          id: document.fileId ?? document.id,
           label: document.label,
           type: document.type,
           fileName: document.fileName,
