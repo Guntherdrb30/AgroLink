@@ -38,27 +38,31 @@ export async function POST(request: Request) {
       try { parsed = JSON.parse(mappingRaw); } catch { return NextResponse.json({ error: "INVALID_COLUMN_MAPPING" }, { status: 400 }); }
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return NextResponse.json({ error: "INVALID_COLUMN_MAPPING" }, { status: 400 });
       const entries = Object.entries(parsed);
-      if (entries.some(([key, value]) => !(key in IMPORT_FIELDS) || !Number.isSafeInteger(value))) {
+      if (entries.some(([key, value]) => !(key in IMPORT_FIELDS) || !(value === null || Number.isSafeInteger(value)))) {
         return NextResponse.json({ error: "INVALID_COLUMN_MAPPING" }, { status: 400 });
       }
       overrides = Object.fromEntries(entries) as MappingOverrides;
     }
     const preview = await previewLivestockWorkbook(new Uint8Array(await file.arrayBuffer()), file.name, overrides);
-    const uploadedCodes = preview.previewRows.map(r => r.internalCode.trim()).filter(Boolean);
+    const uploadedCodes = [...new Set(preview.candidateCodes.map(r => r.code.trim()).filter(Boolean))];
     const existing = await (await import("@/lib/db/prisma")).prisma.animal.findMany({
-      where: { tenantId: context.tenant.id, farmId, internalCode: { in: uploadedCodes } },
+      where: { tenantId: context.tenant.id, internalCode: { in: uploadedCodes } },
       select: { internalCode: true },
     });
+    // Animal codes are tenant-unique: importing one from another farm must also be blocked.
     const matched = new Set(existing.map(a => a.internalCode.trim().toLowerCase()));
-    const dupes = preview.previewRows.filter(r => matched.has(r.internalCode.toLowerCase()));
+    const dupes = preview.candidateCodes.filter(r => matched.has(r.code.trim().toLowerCase()));
     for (const row of dupes) {
-      const issue = { row: row.sourceRow, field: "codigo", code: "EXISTS_IN_FARM" };
-      row.issues.push(issue);
-      preview.issues.push(issue);
+      const issue = { row: row.row, field: "codigo", code: "EXISTS_IN_TENANT" };
+      if (preview.issues.length < 100) preview.issues.push(issue);
+      const visible = preview.previewRows.find(r => r.sourceRow === row.row);
+      if (visible) visible.issues.push(issue);
     }
     preview.issueCount += dupes.length;
-    preview.validRows = Math.max(0, preview.validRows - dupes.filter(r => r.issues.length === 1).length);
+    preview.validRows = Math.max(0, preview.validRows - dupes.filter(r => r.valid).length);
     preview.checkedExistingCodes = true;
+    // Do not expose internal full-batch codes beyond the first 20 preview rows.
+    preview.candidateCodes = [];
     return NextResponse.json({ farm, ...preview }, {
       headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" },
     });
