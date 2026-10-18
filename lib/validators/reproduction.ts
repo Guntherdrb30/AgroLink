@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { REPRODUCTION_KINDS } from "@/lib/livestock/reproduction";
+const REPRODUCTION_KINDS = ["SERVICE", "PREGNANCY_CHECK", "CALVING", "FOLLOW_UP"] as const;
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const d = new Date(value + "T00:00:00Z");
@@ -14,7 +14,9 @@ export const reproductionRecordSchema = z.object({
   method: z.enum(["NATURAL", "INSEMINATION"]).optional(),
   pregnancyResult: z.enum(["POSITIVE", "NEGATIVE", "INCONCLUSIVE"]).optional(),
   sireCode: z.string().trim().max(80).optional(),
+  sireId: z.string().cuid().optional(),
   calfCode: z.string().trim().max(80).optional(),
+  calfSex: z.enum(["MALE", "FEMALE", "UNKNOWN"]).optional(),
   nextCheckAt: optionalDate,
   expectedCalvingAt: optionalDate,
   note: z.string().trim().max(500).optional(),
@@ -23,8 +25,14 @@ export const reproductionRecordSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["method"], message: "Indica el método de servicio" });
   if (row.kind === "PREGNANCY_CHECK" && !row.pregnancyResult)
     ctx.addIssue({ code: "custom", path: ["pregnancyResult"], message: "Indica el resultado" });
+  if (row.calfCode && row.kind === "CALVING" && !row.calfSex)
+    ctx.addIssue({ code: "custom", path: ["calfSex"], message: "Indica el sexo de la cría" });
+  if (row.calfSex && !row.calfCode)
+    ctx.addIssue({ code: "custom", path: ["calfCode"], message: "Indica el código de la cría" });
   if (row.kind !== "CALVING" && row.calfCode)
     ctx.addIssue({ code: "custom", path: ["calfCode"], message: "La cría se registra al parto" });
+  if (row.kind !== "SERVICE" && row.kind !== "CALVING" && row.sireId)
+    ctx.addIssue({ code: "custom", path: ["sireId"], message: "El padre solo puede indicarse en servicios o partos" });
   if (row.kind !== "SERVICE" && row.method)
     ctx.addIssue({ code: "custom", path: ["method"], message: "Método solo permitido en servicios" });
   if (row.kind !== "PREGNANCY_CHECK" && row.pregnancyResult)
