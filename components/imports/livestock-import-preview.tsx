@@ -54,17 +54,19 @@ function humanIssue(issue: PreviewIssue) {
   return labels[issue.code] ?? issue.code;
 }
 
-export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
+export function LivestockImportPreview({ farms, importEnabled }: { farms: FarmOption[]; importEnabled: boolean }) {
   const [farmId, setFarmId] = useState(farms[0]?.id ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Result | null>(null);
+  const [imported, setImported] = useState<number | null>(null);
   const [manualMap, setManualMap] = useState<Record<string, number | null>>({});
 
   function clearPreview() {
     setPreview(null);
     setError("");
+    setImported(null);
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -108,6 +110,31 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
     }
   }
 
+  async function confirmImport() {
+    if (!importEnabled || !file || !farmId || !preview ||
+        preview.issueCount !== 0 || preview.truncated || preview.rowCount === 0 ||
+        !window.confirm(`¿Confirmas que deseas registrar ${preview.rowCount} animales en ${preview.farm.name}? Esta acción escribirá en el inventario.`)) return;
+    setLoading(true); setError("");
+    try {
+      const body = new FormData();
+      body.append("farmId", farmId);
+      body.append("file", file);
+      body.append("confirm", "CONFIRMO_IMPORTAR");
+      if (Object.keys(manualMap).length) body.append("mapping", JSON.stringify(manualMap));
+      const response = await fetch("/api/imports/livestock/commit", { method: "POST", body, credentials: "same-origin", cache: "no-store" });
+      const result = await response.json() as { status?: string; imported?: number; error?: string };
+      if (!response.ok || result.status !== "IMPORTED") {
+        setError(result.error === "IMPORT_DUPLICATE_ANIMALS" ? "Ya existen códigos de ese archivo. Revisa otra vez la vista previa." :
+          "No se guardó el inventario; revisa los datos e inténtalo nuevamente.");
+        return;
+      }
+      setImported(result.imported ?? 0);
+      setPreview(null);
+    } catch {
+      setError("No se pudo confirmar la importación. No la repitas hasta comprobar el inventario.");
+    } finally { setLoading(false); }
+  }
+
   return (
     <div className="space-y-7">
       <form id="ganadia-import-form" onSubmit={onSubmit} className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-7">
@@ -148,6 +175,7 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
         {error ? <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-destructive/30 p-3 text-sm text-destructive"><AlertCircle className="size-4 shrink-0" />{error}</p> : null}
       </form>
 
+      {imported !== null ? <p role="status" className="rounded-2xl border border-border p-4 font-medium">Se registraron {imported} animales. Puedes revisarlos en el módulo Ganado.</p> : null}
       {preview ? (
         <section aria-live="polite" className="space-y-5">
           <div className="rounded-3xl border border-border bg-white p-5 sm:p-6">
@@ -243,6 +271,14 @@ export function LivestockImportPreview({ farms }: { farms: FarmOption[] }) {
               {preview.issueCount > preview.issues.length ? <p className="mt-3 text-sm text-muted-foreground">Se muestran las primeras {preview.issues.length} observaciones.</p> : null}
             </div>
           ) : null}
+          <div className="rounded-2xl border border-border p-4">
+            <p className="font-medium">Confirmación de importación</p>
+            <p className="mt-1 text-sm text-muted-foreground">Se registrarán todos los animales únicamente si no hay errores y el lote completo es válido. La operación se realiza de forma transaccional.</p>
+            <Button type="button" className="mt-3" onClick={confirmImport} disabled={!importEnabled || loading || preview.issueCount > 0 || preview.truncated || preview.rowCount === 0}>
+              Confirmar y registrar animales
+            </Button>
+            {!importEnabled ? <p className="mt-2 text-xs text-muted-foreground">Función pendiente de activar tras las pruebas de seguridad.</p> : null}
+          </div>
           <div className="flex items-start gap-3 rounded-2xl border border-border p-4">
             <RotateCcw className="mt-1 size-5 shrink-0 text-primary" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">Si encuentras errores, corrígelos en tu Excel o CSV y vuelve a seleccionar el archivo. Esta etapa no guarda ni modifica animales; la importación definitiva se habilitará después de probar duplicados contra la base de datos, mapeo y confirmación.</p>
