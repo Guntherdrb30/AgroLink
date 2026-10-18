@@ -11,7 +11,7 @@ export type ReproductionMetadata = {
   calfCode?: string;
   nextCheckAt?: string;
   expectedCalvingAt?: string;
-  stateAfter?: "OPEN" | "PREGNANT" | "LACTATING";
+  stateAfter?: "OPEN" | "PREGNANT" | "LACTATING" | "BREEDING_MALE" | "CASTRATED" | "YOUNG" | "UNKNOWN";
 };
 
 export const REPRODUCTION_LABELS: Record<ReproductionKind, string> = {
