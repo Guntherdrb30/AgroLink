@@ -1,11 +1,9 @@
-name: Clerk migration validation
+name: GanadIA main validation
 
 on:
   push:
     branches:
-      - feat/clerk-auth-migration
       - main
-      - feat/ganadia-sprint0-security-billing
   workflow_dispatch:
 
 permissions:
