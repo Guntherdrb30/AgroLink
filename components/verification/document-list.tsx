@@ -7,11 +7,9 @@ type DocumentListProps = {
   title: string;
   documents: Array<{
     id: string;
-    fileId?: string | null;
     label: string;
     type: string;
     fileName: string;
-    blobUrl: string;
     mimeType?: string;
   }>;
 };
