@@ -25,6 +25,8 @@ export const reproductionRecordSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["method"], message: "Indica el método de servicio" });
   if (row.kind === "PREGNANCY_CHECK" && !row.pregnancyResult)
     ctx.addIssue({ code: "custom", path: ["pregnancyResult"], message: "Indica el resultado" });
+  if (row.kind === "CALVING" && !row.calfCode)
+    ctx.addIssue({ code: "custom", path: ["calfCode"], message: "El código de la cría es obligatorio para crear su ficha" });
   if (row.calfCode && row.kind === "CALVING" && !row.calfSex)
     ctx.addIssue({ code: "custom", path: ["calfSex"], message: "Indica el sexo de la cría" });
   if (row.calfSex && !row.calfCode)
