@@ -1,3 +1,4 @@
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { redirect } from "next/navigation";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
         title="Un panel limpio, listo para crecer por modulos."
         description="Esta vista base ya separa metricas, contexto de la empresa y proximos bloques funcionales del producto."
       />
-      {verificationProfile ? (
+      {isBusinessVerificationRequired() && verificationProfile ? (
         <VerificationGate status={verificationProfile.status} />
       ) : null}
       <DashboardOverview
