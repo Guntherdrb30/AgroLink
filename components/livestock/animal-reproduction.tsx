@@ -38,7 +38,7 @@ export function AnimalReproduction({ animalId, canManage, records, nextCheckAt, 
         </label> : null}
         {kind === "CALVING" ? <>
           <label className="space-y-1 text-sm">Padre (si está registrado)<select name="sireId" className="block h-11 w-full rounded-xl border px-3"><option value="">Usar servicio previo o desconocido</option>{sireOptions.map(sire => <option key={sire.id} value={sire.id}>{sire.label}</option>)}</select></label>
-          <Input name="calfCode" placeholder="Código de nueva cría (opcional)" maxLength={80}/>
+          <Input name="calfCode" placeholder="Código único de la nueva cría (obligatorio)" maxLength={80} required/>
           <label className="space-y-1 text-sm">Sexo de la nueva cría<select name="calfSex" className="block h-11 w-full rounded-xl border px-3"><option value="UNKNOWN">Por determinar</option><option value="MALE">Macho</option><option value="FEMALE">Hembra</option></select></label>
         </> : null}
         <label className="space-y-1 text-sm">Próximo control (opcional)<Input type="date" name="nextCheckAt"/></label>
