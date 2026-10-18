@@ -1,3 +1,5 @@
+import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
+import { redirect } from "next/navigation";
 import { listVerificationProfilesForReview } from "@/server/repositories/verification-repository";
 import { requireRole } from "@/lib/auth/session";
 import { ReviewQueue } from "@/components/verification/review-queue";
@@ -6,6 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 export const dynamic = "force-dynamic";
 
 export default async function AdminVerificationPage() {
+  if (!isBusinessVerificationRequired()) redirect("/dashboard");
   await requireRole({
     platform: ["ROOT", "PLATFORM_ADMIN"],
   });
