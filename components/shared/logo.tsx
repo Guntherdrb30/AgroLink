@@ -2,16 +2,15 @@ import Link from "next/link";
 
 export function Logo() {
   return (
-    <Link href="/" className="inline-flex items-center gap-3">
-      <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-lg font-semibold text-primary-foreground">
-        A
-      </span>
-      <span className="flex flex-col">
-        <span className="text-base font-semibold tracking-tight">AgroLynk</span>
-        <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-          Trends172Tech
-        </span>
-      </span>
+    <Link href="/" aria-label="GanadIA — Tu finca, gestión inteligente." className="inline-flex shrink-0 items-center rounded-xl bg-[#17201b] px-2 py-1">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo/ganadia-lockup.svg"
+        alt="GanadIA — Tu finca, gestión inteligente."
+        width="220"
+        height="74"
+        className="h-[50px] w-[152px] object-contain sm:h-[58px] sm:w-[183px]"
+      />
     </Link>
   );
 }

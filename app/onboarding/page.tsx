@@ -15,10 +15,10 @@ export default async function OnboardingPage() {
     <main className="mx-auto flex min-h-screen max-w-lg items-center px-6">
       <Card className="w-full">
         <CardHeader>
-          <p className="text-sm uppercase tracking-widest text-muted-foreground">AgroLynk</p>
+          <p className="text-sm uppercase tracking-widest text-muted-foreground">GanadIA</p>
           <CardTitle className="text-3xl">Registra tu empresa o finca</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Tu identidad ya fue verificada. Ahora crea la empresa que administraras en AgroLynk.
+            Tu identidad ya fue verificada. Ahora crea la empresa que administraras en GanadIA.
             {isBusinessVerificationRequired() ? "Los documentos se revisaran antes de habilitar las operaciones." : "Modo de desarrollo: puedes probar las funcionalidades sin completar la verificación documental. Clerk y los permisos siguen activos."}
           </p>
         </CardHeader>

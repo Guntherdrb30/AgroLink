@@ -7,7 +7,7 @@ export default function NotFound() {
     <main className="flex min-h-screen items-center justify-center bg-muted/30 px-6">
       <div className="max-w-md space-y-4 text-center">
         <p className="text-sm font-medium uppercase tracking-[0.3em] text-muted-foreground">
-          AgroLynk
+          GanadIA
         </p>
         <h1 className="text-4xl font-semibold text-balance">
           La ruta solicitada no existe.

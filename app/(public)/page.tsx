@@ -16,7 +16,7 @@ export default function PublicHomePage() {
         <PageHeader
           eyebrow="Como funciona"
           title="Una portada publica que explica el sistema sin abrumar al usuario."
-          description="La home debe transmitir orden, respaldo y claridad comercial desde el primer recorrido. Por eso AgroLynk se presenta como un flujo visible: verificar, operar y crecer."
+          description="La home debe transmitir orden, respaldo y claridad comercial desde el primer recorrido. Por eso GanadIA se presenta como un flujo visible: verificar, operar y crecer."
         />
         <MarketplacePreview />
       </section>
