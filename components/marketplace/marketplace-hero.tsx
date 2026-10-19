@@ -18,7 +18,7 @@ const slides = [
     eyebrow: "Operacion integral",
     title: "Gestiona fincas, animales, jornadas y mercado en un solo sistema.",
     detail:
-      "AgroLynk une control ganadero, planillas oficiales, verificacion documental y operacion comercial en una experiencia corporativa clara.",
+      "GanadIA une control ganadero, planillas oficiales, verificacion documental y operacion comercial en una experiencia corporativa clara.",
     image:
       "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1400&q=80",
     alt: "Operacion ganadera profesional en campo abierto",
@@ -82,16 +82,16 @@ export function MarketplaceHero() {
       <div className="container grid gap-10 px-6 py-14 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-18">
         <div className="space-y-8">
           <div className="animate-enter-up inline-flex items-center rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground shadow-sm">
-            AgroLynk - plataforma multiempresa para operacion agropecuaria y mercado verificado
+            GanadIA - plataforma multiempresa para operacion agropecuaria y mercado verificado
           </div>
 
           <div className="animate-enter-up animate-enter-delay-1 space-y-5">
             <h1 className="max-w-3xl text-5xl font-semibold leading-[1.02] text-balance md:text-6xl">
-              La plataforma que hace visible, ordenada y confiable la operacion de tu finca.
+              Tu finca, gestión inteligente.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
               Desde la verificacion de la cuenta hasta el control de ganado, las
-              jornadas de campo y la capa comercial publica, AgroLynk esta
+              jornadas de campo y la capa comercial publica, GanadIA esta
               disenado para empresas agropecuarias que necesitan control real y
               una presencia profesional frente al mercado.
             </p>
