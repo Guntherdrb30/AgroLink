@@ -19,18 +19,18 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://agro-link-gray.vercel.app"),
   title: {
-    default: "AgroLynk",
-    template: "%s | AgroLynk",
+    default: "GanadIA",
+    template: "%s | GanadIA",
   },
-  description:
-    "Plataforma multiempresa para gestion de fincas, control ganadero, mercado verificado y operacion agropecuaria.",
-  applicationName: "AgroLynk",
+  description: "Tu finca, gestión inteligente. Plataforma de gestión agropecuaria.",
+  applicationName: "GanadIA",
+  icons: { icon: "/logo/ganadia-icon.svg", shortcut: "/logo/ganadia-icon.svg", apple: "/icons/ganadia-180.png" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AgroLynk",
+    title: "GanadIA",
   },
   formatDetection: {
     email: false,
@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: "AgroLynk",
+    title: "GanadIA",
     description:
       "Mercado y plataforma agropecuaria con operacion privada por empresa.",
-    siteName: "AgroLynk",
+    siteName: "GanadIA",
     type: "website",
   },
 };
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#9B6D1C",
 };
 
 export default function RootLayout({
