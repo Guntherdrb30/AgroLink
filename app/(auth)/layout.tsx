@@ -23,7 +23,7 @@ export default function AuthLayout({
             Gestion sobria para un producto agropecuario serio.
           </h1>
           <p className="text-base leading-8 text-muted-foreground">
-            El acceso de AgroLynk esta preparado para multiples empresas, multiples roles,
+            El acceso de GanadIA esta preparado para multiples empresas, multiples roles,
             Google como metodo adicional y una experiencia lista para evolucionar
             a onboarding, verificacion y soporte.
           </p>
