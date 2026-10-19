@@ -3,9 +3,9 @@ export function PublicFooter() {
     <footer id="contacto" className="mt-16 border-t border-border/70 bg-white">
       <div className="container grid gap-8 px-6 py-12 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
         <div className="space-y-3">
-          <p className="text-lg font-semibold">AgroLynk</p>
+          <p className="text-lg font-semibold">GanadIA</p>
           <p className="max-w-lg text-sm leading-7 text-muted-foreground">
-            Plataforma SaaS multiempresa para fincas, mercado verificado,
+            Tu finca, gestión inteligente. Plataforma SaaS para fincas, mercado verificado,
             operacion de campo y gestion agropecuaria corporativa.
           </p>
           <p className="text-sm text-muted-foreground">
