@@ -13,9 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "es",
     orientation: "portrait",
     icons: [
-      { src: "/icons/ganadia-192.png?v=1", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/ganadia-512.png?v=1", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-      { src: "/logo/ganadia-icon.svg?v=1", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/icons/icon-192.svg?v=2", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+      { src: "/icons/icon-512.svg?v=2", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
     ],
   };
 }
