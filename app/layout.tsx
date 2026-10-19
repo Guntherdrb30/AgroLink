@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   description: "Tu finca, gestión inteligente. Plataforma de gestión agropecuaria.",
   applicationName: "GanadIA",
-  icons: { icon: "/logo/ganadia-icon.svg", shortcut: "/logo/ganadia-icon.svg", apple: "/icons/ganadia-180.png" },
+  icons: { icon: "/logo/ganadia-icon.svg", shortcut: "/logo/ganadia-icon.svg", apple: "/icons/apple-touch-icon.svg" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
