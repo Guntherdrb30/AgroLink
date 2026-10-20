@@ -61,17 +61,19 @@ export function FarmAreaEditor({farmId,lat,lon,canEdit}:Props){
  useEffect(()=>{
    if(!map.current||!L.current||!savedLayers.current||!drawing.current)return;
    const lib=L.current;
-   savedLayers.current.clearLayers();
+   const saved = savedLayers.current;
+   const drawn = drawing.current;
+   saved.clearLayers();
    for(const a of areas){const positions=a.geometry.coordinates[0].map(([x,y])=>[y,x]);if(positions.length<3)continue;
     lib.polygon(positions,{color:a.kind==="BOUNDARY"?"#bd9b62":a.kind==="FOUNDATION"?"#c78a43":"#367c54",weight:3,fillOpacity:.13})
-     .bindTooltip(a.name+" · "+format(a.areaHectares)+" ha").addTo(savedLayers.current);
+     .bindTooltip(a.name+" · "+format(a.areaHectares)+" ha").addTo(saved);
    }
-   drawing.current.clearLayers();
+   drawn.clearLayers();
    points.forEach(([x,y],i)=>lib.circleMarker([y,x],{radius:editingVertex===i?9:6,color:"#795c31",fillColor:"#fff",fillOpacity:1,weight:3})
      .on("click",(e:LeafletMouseEvent)=>{lib.DomEvent.stopPropagation(e);setEditingVertex(i);})
-     .addTo(drawing.current));
-   if(points.length>=2)lib.polyline(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:3,dashArray:"7 5"}).addTo(drawing.current);
-   if(points.length>=3)lib.polygon(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:2,fillOpacity:.08}).addTo(drawing.current);
+     .addTo(drawn));
+   if(points.length>=2)lib.polyline(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:3,dashArray:"7 5"}).addTo(drawn);
+   if(points.length>=3)lib.polygon(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:2,fillOpacity:.08}).addTo(drawn);
  },[areas,points,mapReady,editingVertex]);
  function choose(a:Area){
    setSelected(a);setKind(a.kind);setName(a.name);setPoints(a.geometry.coordinates[0].slice(0,-1));
