@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ArrowUpRight, type LucideIcon } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import type { ComponentType } from "react";
 
 type FeatureLinkProps = {
   href: string;
   eyebrow: string;
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 };
 
 export function FeatureLink({ href, eyebrow, title, description, icon: Icon }: FeatureLinkProps) {
