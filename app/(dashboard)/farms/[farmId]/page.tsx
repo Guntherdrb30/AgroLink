@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Beef, CalendarDays, ClipboardList, FileText, Landmark, MapPin, Package, Pencil, ShieldCheck, Stamp, TrendingUp, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Beef, CalendarDays, ClipboardList, FileText, Landmark, MapPin, MapPinned, Calculator, Package, Pencil, ShieldCheck, Stamp, TrendingUp, Users, Wallet } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { findFarmById } from "@/server/repositories/farm-repository";
 import { prisma } from "@/lib/db/prisma";
@@ -65,6 +65,13 @@ export default async function FarmCenterPage({ params }: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/livestock" className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm"><Beef className="size-7 shrink-0 text-[#84673a]"/><div className="flex-1"><h3 className="font-bold">Ganado</h3><p className="text-xs leading-5 text-[#738074]">Inventario, historial y reproducción</p></div><ArrowRight className="size-4 text-[#84673a]"/></Link>
         <Link href="/operations" className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm"><ClipboardList className="size-7 shrink-0 text-[#84673a]"/><div className="flex-1"><h3 className="font-bold">Jornadas</h3><p className="text-xs leading-5 text-[#738074]">Trabajos y resultados de campo</p></div><ArrowRight className="size-4 text-[#84673a]"/></Link>
+
+        <Link href={`/farms/${encodeURIComponent(farmId)}/geografia`} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm transition-colors hover:border-[#bba274]">
+          <MapPinned className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold">Mapa y GPS</h3><p className="text-xs leading-5 text-[#738074]">Ubicación de finca y visor geográfico</p></div><ArrowRight className="size-4 text-[#84673a]"/>
+        </Link>
+        <Link href={`/farms/${encodeURIComponent(farmId)}/simulaciones`} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm transition-colors hover:border-[#bba274]">
+          <Calculator className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold">Simulador de inversiones</h3><p className="text-xs leading-5 text-[#738074]">Comparar escenarios bovinos y porcinos</p></div><ArrowRight className="size-4 text-[#84673a]"/>
+        </Link>
         {modules.map(({label,Icon,desc})=><article key={label} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#e3e7e0] bg-white p-4 opacity-80"><Icon className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold text-[#20372a]">{label}</h3><p className="text-xs leading-5 text-[#738074]">{desc}</p></div><span className="shrink-0 rounded-full bg-[#f1f1ec] px-2 py-1 text-[10px] font-semibold text-[#707b70]">En preparación</span></article>)}
       </div>
     </section>

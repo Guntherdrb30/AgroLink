@@ -18,10 +18,17 @@ type FarmDetailPageProps = {
   params: Promise<{
     farmId: string;
   }>;
+  searchParams: Promise<{ gpsLat?: string; gpsLon?: string }>;
 };
 
-export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
+export default async function FarmDetailPage({ params, searchParams }: FarmDetailPageProps) {
   const { farmId } = await params;
+  const { gpsLat, gpsLon } = await searchParams;
+  const candidateLat = gpsLat === undefined || gpsLat.trim() === "" ? null : Number(gpsLat);
+  const candidateLon = gpsLon === undefined || gpsLon.trim() === "" ? null : Number(gpsLon);
+  const gpsSuggestion = candidateLat !== null && candidateLon !== null && Number.isFinite(candidateLat) &&
+    Number.isFinite(candidateLon) && candidateLat >= -90 && candidateLat <= 90 &&
+    candidateLon >= -180 && candidateLon <= 180;
   const { tenantContext } = await requireRole({
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"],
   });
@@ -58,6 +65,7 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
           <CardTitle>Editar finca</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {canEdit && gpsSuggestion ? <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">Coordenadas GPS del teléfono precargadas. Comprueba que estás físicamente en la finca. No se guardarán hasta que confirmes «Actualizar finca».</p> : null}
           {canEdit ? <FarmForm
             mode="edit"
             farm={{
@@ -65,8 +73,8 @@ export default async function FarmDetailPage({ params }: FarmDetailPageProps) {
               name: farm.name,
               description: farm.description,
               location: farm.location,
-              latitude: farm.latitude?.toString() ?? null,
-              longitude: farm.longitude?.toString() ?? null,
+              latitude: gpsSuggestion ? candidateLat!.toFixed(7) : farm.latitude?.toString() ?? null,
+              longitude: gpsSuggestion ? candidateLon!.toFixed(7) : farm.longitude?.toString() ?? null,
               hectares: farm.hectares?.toString() ?? null,
               primaryImageUrl: farm.primaryImageUrl,
               logoUrl: farm.logoUrl,

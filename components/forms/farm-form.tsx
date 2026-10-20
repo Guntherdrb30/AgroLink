@@ -227,7 +227,7 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="name">Nombre</label>
-          <Input id="name" name="name" defaultValue={farm?.name} minLength={3} maxLength={120} required onChange={(event) => event.currentTarget.setCustomValidity("")} />
+          <Input id="name" name="name" defaultValue={farm?.name} minLength={3} maxLength={120} required={step === 0} onChange={(event) => event.currentTarget.setCustomValidity("")} />
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="location">Ubicación</label>
