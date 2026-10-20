@@ -128,3 +128,17 @@ body {
     animation: none !important;
   }
 }
+
+
+/*
+ * GanadIA GIS: Leaflet raster tiles require their intrinsic dimensions.
+ * Tailwind preflight otherwise constrains them to their parent width.
+ */
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+}
+.leaflet-container {
+  font-family: inherit;
+  isolation: isolate;
+}

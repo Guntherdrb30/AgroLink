@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Download, MapPin, Plus, Save, Trash2, Undo2 } from "lucide-react";
+import { BrainCircuit, Download, MapPin, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { validateGeoRing, exportGeoJsonFeature, type LngLat, type GeoRing } from "@/lib/geography/farm-geometry";
 
-type Area = { id:string; name:string; kind:"BOUNDARY"|"PADDOCK"; geometry:{coordinates:[GeoRing]}; areaHectares:number; version:number };
+type Area = { id:string; name:string; kind:"BOUNDARY"|"FOUNDATION"|"PADDOCK"; geometry:{coordinates:[GeoRing]}; areaHectares:number; version:number };
 type Props={farmId:string;farmName:string;lat:number|null;lon:number|null;canEdit:boolean};
 const format=(n:number)=>new Intl.NumberFormat("es-VE",{maximumFractionDigits:3}).format(n);
 export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
  const [areas,setAreas]=useState<Area[]>([]);
  const [points,setPoints]=useState<GeoRing>([]);
- const [kind,setKind]=useState<"BOUNDARY"|"PADDOCK">("BOUNDARY");
+ const [kind,setKind]=useState<"BOUNDARY"|"FOUNDATION"|"PADDOCK">("BOUNDARY");
  const [name,setName]=useState("Perímetro principal");
  const [selected,setSelected]=useState<Area|null>(null);
  const [editingVertex,setEditingVertex]=useState<number|null>(null);
@@ -68,7 +68,7 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
    const lib=L.current;const m=map.current;
    savedLayers.current.clearLayers();
    for(const a of areas){const positions=a.geometry.coordinates[0].map(([x,y])=>[y,x]);if(positions.length<3)continue;
-    lib.polygon(positions,{color:a.kind==="BOUNDARY"?"#bd9b62":"#367c54",weight:3,fillOpacity:.13})
+    lib.polygon(positions,{color:a.kind==="BOUNDARY"?"#bd9b62":a.kind==="FOUNDATION"?"#c78a43":"#367c54",weight:3,fillOpacity:.13})
      .bindTooltip(a.name+" · "+format(a.areaHectares)+" ha").addTo(savedLayers.current);
    }
    drawing.current.clearLayers();
@@ -83,8 +83,8 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
    setEditingVertex(null);setMessage("");
    if(map.current){const ring=a.geometry.coordinates[0];map.current.fitBounds(ring.map(([x,y])=>[y,x]),{padding:[24,24]});}
  }
- function newArea(k:"BOUNDARY"|"PADDOCK"){
-   setSelected(null);setKind(k);setName(k==="BOUNDARY"?"Perímetro principal":"Potrero nuevo");
+ function newArea(k:"BOUNDARY"|"FOUNDATION"|"PADDOCK"){
+   setSelected(null);setKind(k);setName(k==="BOUNDARY"?"Perímetro principal":k==="FOUNDATION"?"Fundación nueva":"Potrero nuevo");
    setPoints([]);setEditingVertex(null);setMessage("");
  }
  async function save(){
@@ -115,7 +115,8 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
      <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#95713f]">GanadIA · GIS</p><h2 className="text-2xl font-bold text-[#1b3425]">Perímetro y potreros</h2><p className="mt-1 text-sm text-[#6c7a70]">Marca puntos en el mapa para delimitar áreas y calcular hectáreas.</p></div>
      {areas.length>0&&<button type="button" onClick={download} className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-bold"><Download className="size-4"/> Exportar GeoJSON</button>}
    </div>
-   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhLh+NmmLh6zqQ4/GV8YqO4tY1fnvRfGvZkQ=" crossOrigin="anonymous"/>
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="anonymous"/>
+   <Link href={"/farms/"+encodeURIComponent(farmId)+"/geografia/asesor"} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#1d3b2b] px-4 text-sm font-bold text-white shadow-sm hover:bg-[#2a5137] sm:w-auto"><BrainCircuit className="size-5"/> Asesor inteligente de fundaciones y potreros</Link>
    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
      <div className="overflow-hidden rounded-3xl border bg-white">
        {!mapReady?<div className="flex min-h-[360px] flex-col items-center justify-center bg-[#e7eee3] p-6 text-center">
@@ -127,8 +128,9 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
      </div>
      <section className="space-y-4 rounded-3xl border bg-white p-4 sm:p-5">
        <h3 className="text-lg font-bold text-[#1f382a]">Gestionar áreas</h3>
-       {canEdit&&<div className="grid grid-cols-2 gap-2">
+       {canEdit&&<div className="grid grid-cols-3 gap-2">
          <button onClick={()=>newArea("BOUNDARY")} type="button" className="rounded-xl bg-[#f1ebdf] px-3 py-3 text-xs font-bold text-[#745a30]"><Plus className="mr-1 inline size-4"/> Perímetro</button>
+         <button onClick={()=>newArea("FOUNDATION")} type="button" className="rounded-xl bg-[#f8f0df] px-2 py-3 text-xs font-bold text-[#826335]"><Plus className="mr-1 inline size-4"/> Fundación</button>
          <button onClick={()=>newArea("PADDOCK")} type="button" className="rounded-xl bg-[#e9f3e7] px-3 py-3 text-xs font-bold text-[#35643e]"><Plus className="mr-1 inline size-4"/> Potrero</button>
        </div>}
        {canEdit&&<><label className="block text-xs font-semibold">Nombre del área<input value={name} onChange={e=>setName(e.target.value)} maxLength={80} className="mt-2 h-11 w-full rounded-xl border px-3 text-base"/></label>
@@ -143,7 +145,7 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
        {message&&<p role="status" className="rounded-xl bg-[#f5f4ed] px-3 py-2 text-xs leading-5">{message}</p>}
        <div className="border-t pt-4"><h4 className="text-sm font-bold">Áreas guardadas</h4>
          {!loaded?<p className="mt-2 text-xs">Cargando...</p>:areas.length===0?<p className="mt-2 text-xs text-[#718074]">Todavía no has definido áreas.</p>:<div className="mt-3 space-y-2">
-           {areas.map(a=><button type="button" key={a.id} onClick={()=>choose(a)} className="flex w-full items-center justify-between gap-2 rounded-xl border p-3 text-left hover:bg-[#f5f7f3]"><span className="min-w-0"><strong className="block truncate text-sm">{a.name}</strong><span className="text-xs text-[#67766c]">{a.kind==="BOUNDARY"?"Perímetro":"Potrero"}</span></span><span className="shrink-0 text-xs font-bold">{format(a.areaHectares)} ha</span></button>)}
+           {areas.map(a=><button type="button" key={a.id} onClick={()=>choose(a)} className="flex w-full items-center justify-between gap-2 rounded-xl border p-3 text-left hover:bg-[#f5f7f3]"><span className="min-w-0"><strong className="block truncate text-sm">{a.name}</strong><span className="text-xs text-[#67766c]">{a.kind==="BOUNDARY"?"Perímetro":a.kind==="FOUNDATION"?"Fundación":"Potrero"}</span></span><span className="shrink-0 text-xs font-bold">{format(a.areaHectares)} ha</span></button>)}
          </div>}
        </div>
      </section>

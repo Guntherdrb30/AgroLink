@@ -2,7 +2,7 @@
 /** Geometría WGS84 para fincas y potreros. Coordenadas en orden [longitud, latitud]. */
 export type LngLat = [number, number];
 export type GeoRing = LngLat[];
-export type FarmAreaKind = "BOUNDARY" | "PADDOCK";
+export type FarmAreaKind = "BOUNDARY" | "FOUNDATION" | "PADDOCK";
 export type AreaGeometry = { type: "Polygon"; coordinates: [GeoRing] };
 export type GeoValidation = { ring: GeoRing; geometry: AreaGeometry; areaHectares: number };
 
@@ -52,7 +52,7 @@ export class GeoInputError extends Error {
   }
 }
 export function isFarmAreaKind(value: unknown): value is FarmAreaKind {
-  return value === "BOUNDARY" || value === "PADDOCK";
+  return value === "BOUNDARY" || value === "FOUNDATION" || value === "PADDOCK";
 }
 
 /** Superficie geodésica aproximada en hectáreas (esfera WGS84). No es deslinde catastral. */

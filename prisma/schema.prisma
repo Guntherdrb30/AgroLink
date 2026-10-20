@@ -239,6 +239,7 @@ model Tenant {
   memberships          TenantMembership[]
   farms                Farm[]
   geoAreas             FarmGeoArea[]
+  grazingPlans         FarmGrazingPlan[]
   employees            Employee[]
   fieldWorkOrders      FieldWorkOrder[]
   marketplaceItems     MarketplaceListing[]
@@ -350,6 +351,7 @@ model Farm {
   animals             Animal[]
   livestockOperations LivestockOperation[]
   geoAreas            FarmGeoArea[]
+  grazingPlans        FarmGrazingPlan[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -794,4 +796,22 @@ model FarmGeoArea {
   farm         Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
   @@unique([farmId, kind, name])
   @@index([tenantId, farmId, kind])
+}
+
+
+model FarmGrazingPlan {
+  id          String   @id
+  tenantId    String
+  farmId      String
+  title       String
+  input       Json
+  output      Json
+  version     Int      @default(1)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, farmId, createdAt])
 }

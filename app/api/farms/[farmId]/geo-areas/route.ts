@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   try { payload = await readPayload(request); }
   catch { return reply({ error: "Solicitud inválida o demasiado extensa" }, 400); }
   const kind = payload.kind;
-  if (kind !== "BOUNDARY" && kind !== "PADDOCK")
+  if (kind !== "BOUNDARY" && kind !== "FOUNDATION" && kind !== "PADDOCK")
     return reply({ error: "Tipo de área inválido" }, 400);
   const name = typeof payload.name === "string" ? payload.name.trim() : "";
   if (name.length < 3 || name.length > 80)
@@ -81,16 +81,16 @@ export async function POST(request: Request, { params }: RouteContext) {
   const boundary = areas.find((a) => a.kind === "BOUNDARY");
   if (kind === "BOUNDARY" && boundary && boundary.id !== editing?.id)
     return reply({ error: "Solo puede existir un perímetro general por finca" }, 409);
-  if (kind === "PADDOCK" && boundary) {
+  if ((kind === "PADDOCK" || kind === "FOUNDATION") && boundary) {
     const outer = ringFromStoredGeoJson(boundary.coordinates);
     if (!outer || !polygonContainedBy(outer, polygon.ring))
-      return reply({ error: "El potrero debe estar dentro del perímetro de la finca" }, 400);
+      return reply({ error: "El área debe estar dentro del perímetro de la finca" }, 400);
   }
   if (kind === "BOUNDARY") {
-    for (const paddock of areas.filter((a) => a.kind === "PADDOCK")) {
+    for (const paddock of areas.filter((a) => a.kind !== "BOUNDARY")) {
       const ring = ringFromStoredGeoJson(paddock.coordinates);
       if (!ring || !polygonContainedBy(polygon.ring, ring))
-        return reply({ error: "El nuevo perímetro excluiría un potrero ya registrado" }, 409);
+        return reply({ error: "El nuevo perímetro excluiría un potrero o fundación registrados" }, 409);
     }
   }
 
@@ -138,9 +138,9 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   if (!target) return reply({ error: "Área no encontrada o modificada por otro usuario" }, 409);
   if (target.kind === "BOUNDARY") {
     const paddocks = await prisma.farmGeoArea.count({
-      where: { tenantId: current.tenant.id, farmId, kind: "PADDOCK" },
+      where: { tenantId: current.tenant.id, farmId, kind: { in: ["PADDOCK", "FOUNDATION"] } },
     });
-    if (paddocks) return reply({ error: "Debes eliminar primero los potreros" }, 409);
+    if (paddocks) return reply({ error: "Debes eliminar primero las fundaciones y potreros" }, 409);
   }
   const result = await prisma.farmGeoArea.deleteMany({
     where: { id: target.id, version: target.version, tenantId: current.tenant.id, farmId },
