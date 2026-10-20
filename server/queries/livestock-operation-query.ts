@@ -21,8 +21,9 @@ export async function getLivestockOperationsIndexData(tenantId: string) {
   return {
     metrics: {
       totalOperations: operations.length,
-      pendingApplication: operations.filter((operation) => operation.status !== "APPLIED")
-        .length,
+      pendingApplication: operations.filter((operation) => operation.status === "RESULTS_CAPTURED").length,
+      planned: operations.filter((operation) => ["DRAFT", "SHEETS_READY"].includes(operation.status)).length,
+      completed: operations.filter((operation) => operation.status === "APPLIED").length,
       totalSheets: operations.reduce(
         (sum, operation) => sum + operation.sheets.length,
         0,
