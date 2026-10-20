@@ -67,13 +67,16 @@ export default async function OperationDetailPage({
 
   const canManage = managementRoles.includes(tenantContext.membership.role);
   const canAdmin = adminRoles.includes(tenantContext.membership.role);
+  const editable = !["APPLIED", "CANCELLED"].includes(data.operation.status);
+  const hasPending = data.animals.some((animal) => animal.status === "PENDING");
+  const readyToApply = data.operation.status === "RESULTS_CAPTURED" && !hasPending && data.animals.some((animal) => animal.status === "CAPTURED");
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Jornada ganadera"
         title={data.operation.title}
-        description="Desde esta vista se generan las planillas oficiales, se cargan resultados, se registran gastos/personal y se aplican los cambios al historial de cada animal."
+        description="Consulta los resultados, controla personal y gastos, y actualiza el historial animal cuando el responsable autorice el cierre."
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -86,34 +89,34 @@ export default async function OperationDetailPage({
       <div className="grid gap-5 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Planillas oficiales</CardTitle>
+            <CardTitle>Planillas internas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="flex flex-wrap gap-3">
-              <form action={generateOperationPdfSheetAction}>
+              {editable && <form action={generateOperationPdfSheetAction}>
                 <input type="hidden" name="operationId" value={data.operation.id} />
-                <Button type="submit">Generar PDF oficial</Button>
-              </form>
-              <form action={generateOperationExcelSheetAction}>
+                <Button type="submit">Generar PDF</Button>
+              </form>}
+              {editable && <form action={generateOperationExcelSheetAction}>
                 <input type="hidden" name="operationId" value={data.operation.id} />
                 <Button type="submit" variant="outline">
-                  Generar Excel oficial
+                  Generar Excel
                 </Button>
-              </form>
+              </form>}
             </div>
 
-            <form action={importOperationExcelAction} className="grid gap-4 md:grid-cols-[1fr_auto]">
+            {editable && <form action={importOperationExcelAction} className="grid gap-4 md:grid-cols-[1fr_auto]">
               <input type="hidden" name="operationId" value={data.operation.id} />
               <input
                 type="file"
                 name="resultsFile"
-                accept=".xlsx,.xls"
+                accept=".xlsx"
                 className="flex h-11 w-full rounded-[22px] border border-input bg-background px-4 py-2 text-sm"
               />
               <Button type="submit" variant="outline">
                 Reimportar Excel
               </Button>
-            </form>
+            </form>}
 
             <div className="space-y-3">
               {data.sheets.length === 0 ? (
@@ -132,9 +135,9 @@ export default async function OperationDetailPage({
                         {sheet.type} · {sheet.source} · v{sheet.version}
                       </p>
                     </div>
-                    {sheet.url ? (
+                    {sheet.fileId ? (
                       <Button asChild variant="outline" size="sm">
-                        <Link href={sheet.url}>Abrir archivo</Link>
+                        <Link href={`/api/operation-sheets/${sheet.fileId}`}>Abrir archivo</Link>
                       </Button>
                     ) : null}
                   </div>
@@ -154,23 +157,23 @@ export default async function OperationDetailPage({
             <p>Hojas: {data.sheets.length}</p>
             <p>Resultados aplicados: {data.operation.resultsAppliedAtIso ? "Si" : "No"}</p>
             {data.operation.notes ? <p>Nota: {data.operation.notes}</p> : null}
-            {canAdmin ? (
+            {canAdmin && readyToApply ? (
               <form action={applyOperationResultsAction}>
                 <input type="hidden" name="operationId" value={data.operation.id} />
                 <Button type="submit" className="mt-3 w-full">
                   Aplicar resultados al historial
                 </Button>
               </form>
-            ) : null}
+            ) : !editable ? <p className="text-xs text-emerald-700">Jornada cerrada: historial protegido.</p> : null}
           </CardContent>
         </Card>
       </div>
 
-      {canManage ? (
+      {canManage && editable ? (
         <OperationLookupPanel operationId={data.operation.id} lookup={data.lookup} />
       ) : null}
 
-      {canManage ? (
+      {canManage && editable ? (
         <OperationResultsTable
           operationId={data.operation.id}
           animals={data.animals}
@@ -202,7 +205,7 @@ export default async function OperationDetailPage({
         </Card>
       )}
 
-      {canAdmin ? (
+      {canAdmin && editable ? (
         <div className="grid gap-5 xl:grid-cols-2">
           <OperationExpenseForm
             operationId={data.operation.id}

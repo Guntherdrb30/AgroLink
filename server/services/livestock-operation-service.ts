@@ -8,6 +8,8 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as XLSX from "xlsx";
 
 import { normalizeAnimalCode } from "@/lib/utils";
+import { validateOperationImportRows } from "@/lib/operations/validate-import-rows";
+import { prisma } from "@/lib/db/prisma";
 import type {
   LivestockOperationInput,
   OperationAnimalResultInput,
@@ -145,8 +147,10 @@ async function storeGeneratedSheet(params: {
     size: storedFile.size,
   });
 
-  await updateLivestockOperation(params.operationId, {
-    status: "SHEETS_READY",
+  // Generating a copy does not rewind an already captured operation.
+  await prisma.livestockOperation.updateMany({
+    where: { id: params.operationId, tenantId: params.tenantId, status: "DRAFT" },
+    data: { status: "SHEETS_READY" },
   });
 
   return storedFile;
@@ -156,13 +160,13 @@ async function buildOperationPdfBytes(
   operation: NonNullable<Awaited<ReturnType<typeof findLivestockOperationById>>>,
 ) {
   const document = await PDFDocument.create();
-  const page = document.addPage([842, 595]);
+  let page = document.addPage([842, 595]);
   const font = await document.embedFont(StandardFonts.Helvetica);
   const boldFont = await document.embedFont(StandardFonts.HelveticaBold);
   const { height } = page.getSize();
   const rows = buildSheetRows(operation);
 
-  page.drawText("AgroLynk - Planilla Oficial de Control Ganadero", {
+  page.drawText("GanadIA - Planilla interna de control ganadero", {
     x: 40,
     y: height - 40,
     size: 18,
@@ -207,61 +211,37 @@ async function buildOperationPdfBytes(
     "Observaciones",
   ];
   const columnWidths = [70, 70, 55, 60, 60, 60, 60, 70, 70, 70, 55, 85];
-  let currentX = 40;
   const tableTop = height - 145;
-
-  headers.forEach((header, index) => {
-    page.drawRectangle({
-      x: currentX,
-      y: tableTop,
-      width: columnWidths[index],
-      height: 20,
-      color: rgb(0.93, 0.95, 0.97),
-      borderColor: rgb(0.8, 0.83, 0.86),
-      borderWidth: 1,
+  const rowsPerPage = 16;
+  const pages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  for (let pageIndex = 0; pageIndex < pages; pageIndex++) {
+    if (pageIndex > 0) page = document.addPage([842, 595]);
+    let x = 40;
+    const top = pageIndex === 0 ? tableTop : height - 70;
+    if (pageIndex > 0) {
+      page.drawText("GanadIA - Planilla interna de control ganadero", { x: 40, y: height - 38, size: 14, font: boldFont });
+    }
+    headers.forEach((header, index) => {
+      page.drawRectangle({ x, y: top, width: columnWidths[index], height: 20,
+        color: rgb(0.93, 0.95, 0.97), borderColor: rgb(0.8, 0.83, 0.86), borderWidth: 1 });
+      page.drawText(header, { x: x + 3, y: top + 6, size: 7, font: boldFont });
+      x += columnWidths[index];
     });
-    page.drawText(header, {
-      x: currentX + 3,
-      y: tableTop + 6,
-      size: 8,
-      font: boldFont,
-    });
-    currentX += columnWidths[index];
-  });
-
-  rows.slice(0, 15).forEach((row, rowIndex) => {
-    let rowX = 40;
-    const rowY = tableTop - (rowIndex + 1) * 22;
-
-    row.forEach((cell, cellIndex) => {
-      page.drawRectangle({
-        x: rowX,
-        y: rowY,
-        width: columnWidths[cellIndex],
-        height: 22,
-        borderColor: rgb(0.86, 0.88, 0.9),
-        borderWidth: 1,
+    rows.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage).forEach((row, index) => {
+      let rowX = 40;
+      const rowY = top - (index + 1) * 22;
+      row.forEach((cell, column) => {
+        page.drawRectangle({ x: rowX, y: rowY, width: columnWidths[column], height: 22,
+          borderColor: rgb(0.86, 0.88, 0.9), borderWidth: 1 });
+        page.drawText(String(cell).slice(0, 18).replace(/[^\\x20-\\x7E]/g, "?"),
+          { x: rowX + 3, y: rowY + 7, size: 7, font });
+        rowX += columnWidths[column];
       });
-      page.drawText(String(cell).slice(0, 18), {
-        x: rowX + 3,
-        y: rowY + 7,
-        size: 7,
-        font,
-      });
-      rowX += columnWidths[cellIndex];
     });
-  });
-
-  page.drawText(
-    "Flujo oficial: imprimir o llenar offline, luego cargar resultados al sistema para aplicar historial.",
-    {
-      x: 40,
-      y: 35,
-      size: 9,
-      font,
-      color: rgb(0.35, 0.39, 0.44),
-    },
-  );
+    page.drawText(`Planilla interna · pagina ${pageIndex + 1} de ${pages} · ${rows.length} animales`, {
+      x: 40, y: 34, size: 9, font, color: rgb(0.35, 0.39, 0.44),
+    });
+  }
 
   return document.save();
 }
@@ -271,7 +251,7 @@ async function buildOperationWorkbookBytes(
 ) {
   const workbook = XLSX.utils.book_new();
   const infoSheet = XLSX.utils.aoa_to_sheet([
-    ["AgroLynk - Plantilla Oficial de Control Ganadero"],
+    ["GanadIA - Plantilla interna de control ganadero"],
     ["Jornada", operation.title],
     ["Finca", operation.farm.name],
     ["Fecha", operation.operationDate.toISOString().slice(0, 10)],
@@ -402,97 +382,67 @@ export async function importOperationExcelForTenant(
   file: File,
 ) {
   const operation = await findLivestockOperationById(operationId);
-
-  if (!operation || operation.tenantId !== tenantId) {
-    throw new Error("OPERATION_NOT_FOUND");
+  if (!operation || operation.tenantId !== tenantId) throw new Error("OPERATION_NOT_FOUND");
+  if (!["DRAFT", "SHEETS_READY", "RESULTS_CAPTURED"].includes(operation.status)) {
+    throw new Error("OPERATION_CLOSED");
+  }
+  if (!file.name.toLowerCase().endsWith(".xlsx") || file.size <= 0 || file.size > 10 * 1024 * 1024) {
+    throw new Error("INVALID_OPERATION_WORKBOOK");
   }
 
-  const storedFile = await storeFile({
-    tenantId,
-    uploadedById: actorUserId,
-    file,
-    usage: "import_file",
-    entityType: "livestock_operation",
-    entityId: operationId,
-    label: `Resultados importados - ${operation.title}`,
-  });
-
-  const workbook = XLSX.read(await file.arrayBuffer(), {
-    type: "array",
-  });
-  const sheet =
-    workbook.Sheets.Planilla ?? workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
-    defval: "",
-  });
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const sheet = workbook.Sheets.Planilla;
+  if (!sheet) throw new Error("MISSING_OPERATION_SHEET");
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
   const operationAnimals = await listOperationAnimals(operationId);
+  const planned = validateOperationImportRows(rows, operationAnimals);
 
-  for (const row of rows) {
-    const code = normalizeAnimalCode(
-      String(
-        row["Codigo interno"] ||
-          row["Codigo"] ||
-          row["codigo interno"] ||
-          row["codigo"],
-      ),
-    );
-
-    if (!code) {
-      continue;
-    }
-
-    const match = operationAnimals.find((item) => {
-      const codes = [
-        item.internalCodeSnapshot,
-        item.visualIdentificationSnapshot ?? "",
-        item.animal.internalCode,
-        item.animal.visualIdentification ?? "",
-      ].map(normalizeAnimalCode);
-
-      return codes.includes(code);
+  // Nothing is written unless all rows, identities and data are valid.
+  await prisma.$transaction(async (tx) => {
+    const active = await tx.livestockOperation.findFirst({
+      where: { id: operationId, tenantId, status: { in: ["DRAFT", "SHEETS_READY", "RESULTS_CAPTURED"] } },
+      select: { id: true },
     });
-
-    if (!match) {
-      continue;
-    }
-
-    await updateOperationAnimal(match.id, {
-      weightKg: normalizeDecimal(String(row["Peso nuevo"] || row["Peso"] || "")),
-      vaccineName: String(row["Vacuna aplicada"] || row["Vacuna"] || "").trim() || null,
-      dewormingName:
-        String(row["Desparasitacion"] || row["Desparasitante"] || "").trim() || null,
-      treatmentName:
-        String(row["Tratamiento"] || row["Tratamiento aplicado"] || "").trim() || null,
-      observations:
-        String(row["Observaciones"] || row["Observacion"] || "").trim() || null,
-      generalStatus:
-        (String(row["Estado general"] || "NOT_CHECKED").trim().toUpperCase() as OperationAnimalGeneralStatus) ||
-        "NOT_CHECKED",
-      status: "CAPTURED",
-      capturedAt: new Date(),
+    if (!active) throw new Error("OPERATION_CLOSED");
+    const current = await tx.livestockOperationAnimal.findMany({
+      where: { tenantId, operationId }, select: { id: true, appliedToAnimalHistory: true },
     });
+    const map = new Map(current.map(row => [row.id, row]));
+    for (const item of planned) {
+      const row = map.get(item.operationAnimalId);
+      if (!row || row.appliedToAnimalHistory) throw new Error("OPERATION_ALREADY_APPLIED");
+      await tx.livestockOperationAnimal.update({
+        where: { id: item.operationAnimalId },
+        data: { weightKg: item.weightKg, vaccineName: item.vaccineName,
+          dewormingName: item.dewormingName, treatmentName: item.treatmentName,
+          observations: item.observations, generalStatus: item.generalStatus,
+          status: "CAPTURED", capturedAt: new Date() },
+      });
+    }
+    await tx.livestockOperation.update({
+      where: { id: operationId },
+      data: { status: "RESULTS_CAPTURED" },
+    });
+  });
+
+  // The source workbook is supplementary; failures storing it must not rewind confirmed results.
+  try {
+    const stored = await storeFile({
+      tenantId, uploadedById: actorUserId, file, usage: "import_file",
+      entityType: "livestock_operation", entityId: operationId,
+      label: `Resultados importados - ${operation.title}`,
+    });
+    const version = (await countOperationSheets(operationId, "RESULTS_UPLOAD")) + 1;
+    await createOperationSheet({
+      tenantId, operationId, fileId: stored.id, generatedById: actorUserId,
+      type: "RESULTS_UPLOAD", source: "IMPORTED",
+      label: `Resultados Excel importados - ${operation.title}`,
+      version, blobUrl: stored.url, blobPath: stored.path,
+      contentType: stored.mimeType, size: stored.size,
+    });
+  } catch (error) {
+    console.error("OPERATION_UPLOAD_ARCHIVE_FAILED", error);
   }
-
-  const version = (await countOperationSheets(operationId, "RESULTS_UPLOAD")) + 1;
-
-  await createOperationSheet({
-    tenantId,
-    operationId,
-    fileId: storedFile.id,
-    generatedById: actorUserId,
-    type: "RESULTS_UPLOAD",
-    source: "IMPORTED",
-    label: `Resultados Excel importados - ${operation.title}`,
-    version,
-    blobUrl: storedFile.url,
-    blobPath: storedFile.path,
-    contentType: storedFile.mimeType,
-    size: storedFile.size,
-  });
-
-  await updateLivestockOperation(operationId, {
-    status: "RESULTS_CAPTURED",
-  });
 }
 
 export async function saveOperationAnimalResultForTenant(
@@ -504,7 +454,7 @@ export async function saveOperationAnimalResultForTenant(
   if (!operationAnimal || operationAnimal.tenantId !== tenantId) {
     throw new Error("OPERATION_ANIMAL_NOT_FOUND");
   }
-  if (operationAnimal.appliedToAnimalHistory || operationAnimal.operation.status === "APPLIED") {
+  if (operationAnimal.appliedToAnimalHistory || ["APPLIED", "CANCELLED"].includes(operationAnimal.operation.status)) {
     throw new Error("OPERATION_ALREADY_APPLIED");
   }
 

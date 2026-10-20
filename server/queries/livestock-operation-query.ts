@@ -101,11 +101,12 @@ export async function getLivestockOperationDetailData(
     },
     sheets: operation.sheets.map((sheet) => ({
       id: sheet.id,
+      fileId: sheet.fileId,
       type: sheet.type,
       source: sheet.source,
       label: sheet.label,
       version: sheet.version,
-      url: sheet.file?.url ?? sheet.blobUrl,
+      url: null,
       createdAtIso: sheet.createdAt.toISOString(),
     })),
     animals: operation.animals.map((row) => ({
