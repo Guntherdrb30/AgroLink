@@ -1,3 +1,7 @@
+"use client";
+
+import { useRef, useState, type FormEvent } from "react";
+
 import {
   createAnimalAction,
   updateAnimalAction,
@@ -89,10 +93,84 @@ export function AnimalForm({
   photos = [],
 }: AnimalFormProps) {
   const action = mode === "create" ? createAnimalAction : updateAnimalAction;
+  const guided = mode === "create";
+  const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function checkStep(index: number) {
+    const form = formRef.current;
+    if (!form) return false;
+    const get = (name: string) => {
+      const control = form.elements.namedItem(name);
+      return control instanceof HTMLInputElement || control instanceof HTMLSelectElement
+        ? control.value.trim()
+        : "";
+    };
+    if (index === 0) {
+      if (get("internalCode").length < 2 || get("internalCode").length > 60) {
+        setStepError("Escribe un código interno de 2 a 60 caracteres.");
+        (form.elements.namedItem("internalCode") as HTMLInputElement | null)?.focus();
+        return false;
+      }
+      if (get("speciesName").length < 2 || get("speciesName").length > 80) {
+        setStepError("Escribe el nombre de la especie.");
+        (form.elements.namedItem("speciesName") as HTMLInputElement | null)?.focus();
+        return false;
+      }
+    }
+    if (index === 1) {
+      if (!get("farmId")) {
+        setStepError("Debes seleccionar una finca.");
+        (form.elements.namedItem("farmId") as HTMLSelectElement | null)?.focus();
+        return false;
+      }
+      if (!get("birthDate") && !get("estimatedAgeMonths")) {
+        setStepError("Indica la fecha de nacimiento o la edad estimada en meses.");
+        (form.elements.namedItem("estimatedAgeMonths") as HTMLInputElement | null)?.focus();
+        return false;
+      }
+      if (get("estimatedAgeMonths") && !/^\\d+$/.test(get("estimatedAgeMonths"))) {
+        setStepError("La edad estimada debe ser un número entero de meses.");
+        (form.elements.namedItem("estimatedAgeMonths") as HTMLInputElement | null)?.focus();
+        return false;
+      }
+    }
+    setStepError("");
+    return true;
+  }
+
+  function nextStep() {
+    if (!checkStep(step)) return;
+    setStep((value) => Math.min(2, value + 1));
+  }
+
+  function submitIfValid(event: FormEvent<HTMLFormElement>) {
+    if (!guided) return;
+    for (const index of [0, 1]) {
+      if (!checkStep(index)) {
+        event.preventDefault();
+        setStep(index);
+        return;
+      }
+    }
+  }
 
   return (
-    <form action={action} className="grid gap-6">
+    <form ref={formRef} action={action} onSubmit={submitIfValid} className="grid gap-5">
       {animal ? <input type="hidden" name="animalId" value={animal.id} /> : null}
+      {guided ? (
+        <div className="flex items-center gap-1.5" aria-label="Progreso de registro">
+          {["Identidad", "Finca", "Detalles"].map((label, index) => (
+            <span key={label} aria-current={step === index ? "step" : undefined}
+              className={"min-w-0 flex-1 rounded-xl px-1.5 py-3 text-center text-[11px] font-bold sm:text-sm " +
+                (step === index ? "bg-[#1b3d2c] text-white" : "bg-[#f0f3ee] text-[#647465]")}>
+              {index + 1}. {label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className={guided && step !== 0 ? "hidden" : "space-y-5"}>
       <div className="grid gap-5 md:grid-cols-3">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="internalCode">
@@ -102,7 +180,9 @@ export function AnimalForm({
             id="internalCode"
             name="internalCode"
             defaultValue={animal?.internalCode}
-            required
+            minLength={2}
+            maxLength={60}
+            required={!guided || step === 0}
           />
         </div>
         <div className="space-y-2">
@@ -139,7 +219,9 @@ export function AnimalForm({
             name="speciesName"
             defaultValue={animal?.speciesName}
             placeholder="Bovino"
-            required
+            minLength={2}
+            maxLength={80}
+            required={!guided || step === 0}
           />
         </div>
         <div className="space-y-2">
@@ -172,6 +254,8 @@ export function AnimalForm({
         </div>
       </div>
 
+      </div>
+      <div className={guided && step !== 1 ? "hidden" : "space-y-5"}>
       <div className="grid gap-5 md:grid-cols-4">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="birthDate">
@@ -204,7 +288,7 @@ export function AnimalForm({
             name="farmId"
             defaultValue={animal?.farmId ?? farms[0]?.id}
             className="flex h-11 w-full rounded-[22px] border border-input bg-background px-4 text-sm"
-            required
+            required={!guided || step === 1}
           >
             {farms.map((farm) => (
               <option key={farm.id} value={farm.id}>
@@ -350,6 +434,8 @@ export function AnimalForm({
         </div>
       </div>
 
+      </div>
+      <div className={guided && step !== 2 ? "hidden" : "space-y-5"}>
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="notes">
           Observaciones
@@ -377,11 +463,28 @@ export function AnimalForm({
         multiple
       />
 
-      <div>
-        <Button type="submit">
-          {mode === "create" ? "Crear animal" : "Actualizar ficha"}
-        </Button>
       </div>
+      {stepError && guided ? (
+        <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          {stepError}
+        </p>
+      ) : null}
+      {guided ? (
+        <div className="flex items-center justify-between gap-3 border-t border-[#e7ece5] pt-5">
+          {step > 0 ? (
+            <Button variant="outline" type="button" onClick={() => { setStepError(""); setStep((value) => Math.max(0, value - 1)); }}>
+              Anterior
+            </Button>
+          ) : <span />}
+          {step < 2 ? (
+            <Button type="button" onClick={nextStep}>Continuar</Button>
+          ) : (
+            <Button type="submit" className="min-h-11">Registrar animal</Button>
+          )}
+        </div>
+      ) : (
+        <Button type="submit" className="w-full sm:w-auto">Actualizar ficha</Button>
+      )}
     </form>
   );
 }

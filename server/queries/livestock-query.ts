@@ -51,7 +51,7 @@ export async function getLivestockIndexData(tenantId: string) {
   return {
     metrics: {
       totalAnimals: animals.length,
-      activeFarms: farms.length,
+      activeFarms: new Set(animals.map((animal) => animal.farmId)).size,
       healthyAnimals: animals.filter((animal) => animal.healthStatus === "HEALTHY")
         .length,
       breedingAnimals: animals.filter(
