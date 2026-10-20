@@ -238,6 +238,7 @@ model Tenant {
   defaultUsers         User[]                    @relation("DefaultTenant")
   memberships          TenantMembership[]
   farms                Farm[]
+  geoAreas             FarmGeoArea[]
   employees            Employee[]
   fieldWorkOrders      FieldWorkOrder[]
   marketplaceItems     MarketplaceListing[]
@@ -348,6 +349,7 @@ model Farm {
   verificationDocs    VerificationDocument[]
   animals             Animal[]
   livestockOperations LivestockOperation[]
+  geoAreas            FarmGeoArea[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -774,4 +776,22 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+model FarmGeoArea {
+  id           String @id
+  tenantId     String
+  farmId       String
+  kind         String
+  name         String
+  coordinates  Json
+  areaHectares Decimal @db.Decimal(14, 4)
+  version      Int @default(1)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  farm         Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  @@unique([farmId, kind, name])
+  @@index([tenantId, farmId, kind])
 }
