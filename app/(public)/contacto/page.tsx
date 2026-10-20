@@ -1,0 +1,8 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, MessageCircle, UserRound } from "lucide-react";
+import { MarketingPageIntro } from "@/components/marketing/marketing-page-intro";
+import { InstitutionalWhatsAppButton } from "@/components/shared/institutional-whatsapp-button";
+import { Button } from "@/components/ui/button";
+export const metadata:Metadata={title:"Contacto",description:"Consulta opciones de acceso e información sobre la plataforma GanadIA."};
+export default function ContactoPage(){return <><MarketingPageIntro eyebrow="Contacto" title="Conversemos sobre tu operación agropecuaria." description="Si ya tienes una cuenta, ingresa a GanadIA. Si necesitas orientación, utiliza el canal institucional disponible. No solicitamos información privada de tus fincas desde esta página."/><section className="container grid gap-5 px-5 py-14 sm:px-6 md:grid-cols-2"><article className="rounded-3xl border bg-white p-7"><UserRound className="size-8 text-primary"/><h2 className="mt-5 text-2xl font-bold">Ya tengo acceso</h2><p className="mt-3 leading-7 text-muted-foreground">Entra con tu usuario y continúa trabajando con los permisos asignados.</p><Button asChild className="mt-6"><Link href="/login">Entrar a GanadIA <ArrowRight className="size-4"/></Link></Button></article><article className="rounded-3xl border bg-white p-7"><MessageCircle className="size-8 text-primary"/><h2 className="mt-5 text-2xl font-bold">Información institucional</h2><p className="mt-3 leading-7 text-muted-foreground">El canal de WhatsApp se muestra solamente cuando esté configurado un número empresarial válido.</p><div className="mt-6"><InstitutionalWhatsAppButton /></div></article></section></>;}
