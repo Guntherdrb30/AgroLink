@@ -46,8 +46,10 @@ function normalCoord(v: unknown, min: number, max: number, label: string): numbe
   return Math.round(v * 1e7) / 1e7;
 }
 export class GeoInputError extends Error {
-  constructor(public readonly code: string, message: string) {
+  readonly code: string;
+  constructor(code: string, message: string) {
     super(message);
+    this.code = code;
     this.name = "GeoInputError";
   }
 }

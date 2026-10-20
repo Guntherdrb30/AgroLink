@@ -3,8 +3,12 @@
  * The caller commits the returned plan in a single tenant-scoped transaction.
  */
 export class OperationImportValidationError extends Error {
-  constructor(public readonly code: string, public readonly rowNumber?: number) {
+  readonly code: string;
+  readonly rowNumber?: number;
+  constructor(code: string, rowNumber?: number) {
     super(rowNumber ? `${code}: fila ${rowNumber}` : code);
+    this.code = code;
+    this.rowNumber = rowNumber;
     this.name = "OperationImportValidationError";
   }
 }
