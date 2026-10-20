@@ -121,13 +121,14 @@ async function uploadPrivateFarmImage(
 }
 
 export function FarmForm({ mode, farm }: FarmFormProps) {
+  const [step, setStep] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (uploading) return;
+    if (uploading || step !== 2) return;
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -212,10 +213,21 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
   return (
     <form onSubmit={(event) => { void handleSubmit(event); }} className="grid gap-5">
       {farm ? <input type="hidden" name="farmId" value={farm.id} /> : null}
+      <div className="flex items-center gap-2" aria-label="Progreso del formulario">
+        {["Información", "Ubicación", "Fotografías"].map((label, index) => (
+          <button key={label} type="button" onClick={() => setStep(index)} disabled={uploading}
+            aria-current={step === index ? "step" : undefined}
+            className={"min-w-0 flex-1 rounded-xl px-2 py-3 text-xs font-semibold transition-colors " +
+              (step === index ? "bg-[#1d3b2b] text-white" : "bg-[#eef2eb] text-[#526552] hover:bg-[#e0e8da]")}>
+            {index + 1}. {label}
+          </button>
+        ))}
+      </div>
+      <div className={step === 0 ? "space-y-5" : "hidden"}>
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="name">Nombre</label>
-          <Input id="name" name="name" defaultValue={farm?.name} required />
+          <Input id="name" name="name" defaultValue={farm?.name} minLength={3} maxLength={120} required onChange={(event) => event.currentTarget.setCustomValidity("")} />
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="location">Ubicación</label>
@@ -226,6 +238,8 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
         <label className="text-sm font-medium" htmlFor="description">Descripción</label>
         <Textarea id="description" name="description" defaultValue={farm?.description ?? ""} placeholder="Resumen operativo de la finca" />
       </div>
+      </div>
+      <div className={step === 1 ? "space-y-5" : "hidden"}>
       <div className="grid gap-5 md:grid-cols-3">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="latitude">Latitud</label>
@@ -240,6 +254,8 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
           <Input id="hectares" name="hectares" defaultValue={farm?.hectares ?? ""} placeholder="450.50" />
         </div>
       </div>
+      </div>
+      <div className={step === 2 ? "space-y-5" : "hidden"}>
       {existingAssets.length > 0 ? (
         <div className="space-y-3">
           <p className="text-sm font-medium">Activos actuales</p>
@@ -250,12 +266,23 @@ export function FarmForm({ mode, farm }: FarmFormProps) {
         <FileDropzone name="primaryImage" label="Imagen principal" description="JPEG, PNG o WEBP hasta 10 MB." accept="image/jpeg,image/png,image/webp" />
         <FileDropzone name="logo" label="Logo" description="JPEG, PNG o WEBP hasta 5 MB." accept="image/jpeg,image/png,image/webp" />
       </div>
+      </div>
       {progress && <p role="status" className="text-sm text-muted-foreground">{progress}</p>}
       {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
-      <div>
-        <Button type="submit" disabled={uploading}>
-          {uploading ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e4e9df] pt-5">
+        {step > 0 ? <Button type="button" variant="outline" disabled={uploading} onClick={() => setStep((value) => Math.max(0, value - 1))}>Anterior</Button> : <span />}
+        {step < 2 ? <Button type="button" onClick={() => {
+          if (step === 0) {
+            const name = document.getElementById("name") as HTMLInputElement | null;
+            if (name && (name.value.trim().length < 3 || name.value.trim().length > 120)) {
+              name.setCustomValidity("Escribe un nombre entre 3 y 120 caracteres.");
+              name.reportValidity();
+              return;
+            }
+            name?.setCustomValidity("");
+          }
+          setStep((value) => Math.min(2, value + 1));
+        }}>Continuar</Button> : <Button type="submit" disabled={uploading}>{uploading ? "Procesando..." : mode === "create" ? "Crear finca" : "Actualizar finca"}</Button>}
       </div>
     </form>
   );
