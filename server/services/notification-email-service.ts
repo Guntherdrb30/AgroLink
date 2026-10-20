@@ -1,5 +1,5 @@
 /**
- * AgroLynk transactional notifications. Clerk remains the authority for
+ * GanadIA transactional notifications. Clerk remains the authority for
  * sign-in / sign-up verification codes and password recovery.
  *
  * RESEND_API_KEY is only read on the server; never embed in client bundles.
@@ -21,30 +21,35 @@ function escapeHtml(value: string) {
 }
 
 function makeEmail(params: { title: string; recipientName: string; paragraphs: string[]; url: string }) {
-  const greeting = `Hola, ${params.recipientName || "usuario de AgroLynk"}.`;
-  const content = [greeting, ...params.paragraphs, `Accede a AgroLynk: ${params.url}`];
+  const greeting = `Hola, ${params.recipientName || "usuario de GanadIA"}.`;
+  const content = [greeting, ...params.paragraphs, `Accede a GanadIA: ${params.url}`];
   const text = content.join("\n\n");
-  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#f5f7f4;padding:30px;font-family:Arial,sans-serif;color:#26332a"><table role="presentation" style="max-width:600px;margin:auto;background:white;border-radius:14px;padding:30px;width:100%"><tr><td><p style="font-weight:bold;color:#43633e">AGROLYNK</p><h1 style="font-size:23px">${escapeHtml(params.title)}</h1>${content.slice(0,-1).map(p=>`<p style="font-size:15px;line-height:1.6">${escapeHtml(p)}</p>`).join("")}<a href="${escapeHtml(params.url)}" style="display:inline-block;background:#42663c;color:#fff;padding:13px 20px;text-decoration:none;border-radius:8px">Abrir AgroLynk</a><p style="font-size:12px;color:#68766b;margin-top:25px">Este es un mensaje operativo de AgroLynk. Nunca compartas códigos de acceso ni contraseñas.</p></td></tr></table></body></html>`;
+  const ctaLabel = params.url.endsWith("/dashboard") ? "Entrar a GanadIA" : "Ver estado en GanadIA";
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px 12px;background:#f3f5f0;font-family:Arial,Helvetica,sans-serif;color:#22352a"><table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;margin:0 auto;border-collapse:collapse;background:#ffffff;border-radius:18px;overflow:hidden"><tr><td style="padding:30px 28px;background:#172b20"><p style="margin:0;font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-0.6px;color:#ffffff">Ganad<span style="color:#d4b074">IA</span></p><p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#f3e8d0">Tu finca, gestión inteligente.</p></td></tr><tr><td style="padding:29px 28px 33px"><p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:2px;color:#9b773f">NOTIFICACIÓN DE GANADIA</p><h1 style="margin:0 0 24px;font-size:23px;line-height:1.32;color:#203629">${escapeHtml(params.title)}</h1>${content.slice(0, -1).map((paragraph) => `<p style="font-size:15px;line-height:1.75;color:#42544a;margin:0 0 18px">${escapeHtml(paragraph)}</p>`).join("")}<p style="margin:24px 0"><a href="${escapeHtml(params.url)}" style="display:inline-block;background:#876633;color:#ffffff;font-weight:700;font-size:14px;line-height:1.4;text-decoration:none;border-radius:999px;padding:14px 22px">${escapeHtml(ctaLabel)}</a></p><p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #e4e7e0;font-size:12px;line-height:1.65;color:#7a867c">Este es un mensaje de GanadIA, plataforma tecnológica de Trends172Tech. Nunca compartas códigos de acceso ni contraseñas.</p></td></tr></table></body></html>`;
   return { text, html };
 }
 
-export function buildAgroLynkMessage(params: {
+export function buildGanadIAMessage(params: {
   event: "welcome" | "submitted" | "approved" | "needs_changes" | "rejected" | "review_started";
   recipientName: string;
   tenantName: string;
   subjectLabel?: "empresa" | "finca";
+  verificationRequired?: boolean;
 }) {
   const label = params.subjectLabel ?? "empresa";
+  const verificationRequired = params.verificationRequired ?? (process.env.GANADIA_REQUIRE_BUSINESS_VERIFICATION !== "false");
   const subject = ({
-    welcome: "Bienvenido a AgroLynk: registro de empresa iniciado",
-    submitted: `AgroLynk: ${label} recibida para revisión`,
-    approved: `AgroLynk: verificación de ${label} aprobada`,
-    needs_changes: `AgroLynk: tu ${label} requiere correcciones`,
-    rejected: `AgroLynk: resultado de verificación de ${label}`,
-    review_started: `AgroLynk: revisión de ${label} iniciada`,
+    welcome: "Bienvenido a GanadIA: tu empresa está registrada",
+    submitted: `GanadIA: ${label} recibida para revisión`,
+    approved: `GanadIA: verificación de ${label} aprobada`,
+    needs_changes: `GanadIA: tu ${label} requiere correcciones`,
+    rejected: `GanadIA: resultado de verificación de ${label}`,
+    review_started: `GanadIA: revisión de ${label} iniciada`,
   } as const)[params.event];
   const messages = ({
-    welcome: [`Tu cuenta está asociada a "${params.tenantName}".`, "Ya puedes consultar el centro de verificación. Para habilitar la operación completa tendrás que presentar la documentación correspondiente y esperar su aprobación."],
+    welcome: verificationRequired
+      ? [`Tu cuenta está asociada a "${params.tenantName}".`, "Para habilitar la operación completa deberás presentar la documentación correspondiente y esperar su aprobación."]
+      : [`Tu empresa "${params.tenantName}" ya está registrada en GanadIA.`, "Ya puedes entrar al panel para registrar fincas y organizar tu actividad agropecuaria. La verificación documental se activará antes del lanzamiento definitivo."],
     submitted: [`Recibimos la solicitud de revisión de ${label} para "${params.tenantName}".`, "Puedes consultar el estado de la solicitud en tu panel."],
     approved: [`Se aprobó la verificación de ${label} para "${params.tenantName}".`, "Entra a la plataforma para conocer las operaciones que ya puedes realizar."],
     needs_changes: [`La verificación de ${label} para "${params.tenantName}" requiere correcciones.`, "Consulta las observaciones en la plataforma y vuelve a presentar la documentación allí. No envíes documentos sensibles respondiendo a este correo."],
@@ -57,16 +62,16 @@ export function buildAgroLynkMessage(params: {
       title: subject,
       recipientName: params.recipientName,
       paragraphs: [...messages],
-      url: "https://agro-link-gray.vercel.app/verification",
+      url: "https://agro-link-gray.vercel.app" + (params.event === "welcome" && !verificationRequired ? "/dashboard" : "/verification"),
     }),
   };
 }
 
 export function notificationsConfigured() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.AGROLYNK_EMAIL_FROM);
+  return Boolean(process.env.RESEND_API_KEY && (process.env.GANADIA_EMAIL_FROM || process.env.AGROLYNK_EMAIL_FROM));
 }
 
-export async function sendAgroLynkEmail(params: {
+export async function sendGanadIAEmail(params: {
   to: string;
   subject: string;
   text: string;
@@ -74,7 +79,7 @@ export async function sendAgroLynkEmail(params: {
   idempotencyKey: string;
 }): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.AGROLYNK_EMAIL_FROM;
+  const from = process.env.GANADIA_EMAIL_FROM || process.env.AGROLYNK_EMAIL_FROM;
   if (!apiKey || !from) return { status: "not_configured" };
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -95,12 +100,12 @@ export async function sendAgroLynkEmail(params: {
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
-      console.error("AgroLynk email provider rejected request:", response.status);
+      console.error("GanadIA email provider rejected request:", response.status);
       return { status: "failed" };
     }
     return { status: "accepted" };
   } catch (error) {
-    console.error("AgroLynk email delivery request failed:", error instanceof Error ? error.name : "unknown");
+    console.error("GanadIA email delivery request failed:", error instanceof Error ? error.name : "unknown");
     return { status: "failed" };
   }
 }
@@ -114,8 +119,8 @@ export async function sendVerificationNotification(params: {
   idempotencyKey: string;
   subjectLabel?: "empresa" | "finca";
 }) {
-  const { subject, text, html } = buildAgroLynkMessage(params);
-  return sendAgroLynkEmail({
+  const { subject, text, html } = buildGanadIAMessage(params);
+  return sendGanadIAEmail({
     to: params.to,
     subject,
     text,
