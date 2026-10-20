@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Beef, BrainCircuit, Calculator, CheckCheck,
-  ClipboardList, Droplets, Home, Layers, Plus, Save, ShieldAlert, Trash2, Trees,
+  AlertTriangle, ArrowLeft, ArrowRight, BrainCircuit, CheckCheck,
+  ClipboardList, Plus, Save, ShieldAlert, Trash2, Trees,
 } from "lucide-react";
 import {
   calculateGrazingPlan, type FoundationPlanInput, type GrazingHerd,
-  type GrazingPlanInput, type GrazingPlanResult, type CattleClass,
+  type GrazingPlanInput, type CattleClass,
   type GrazingSeason, type ProductionPurpose,
 } from "@/lib/planning/grazing-foundations";
 import { GrazingSketchMap } from "@/components/geography/grazing-sketch-map";
@@ -171,7 +171,6 @@ export function GrazingAdvisor({farmId,farmName,farmHectares,latitude,longitude,
     }catch(e){setNotice(e instanceof Error?e.message:"Error de conexión");}
     finally{setSaving(false);}
   }
-  const seasonLabel=(s:GrazingSeason)=>seasons.find(x=>x.value===s)?.label??s;
   return <div className="mx-auto max-w-6xl space-y-5 pb-8">
     <Link href={"/farms/"+encodeURIComponent(farmId)+"/geografia"}
       className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#86663a]">

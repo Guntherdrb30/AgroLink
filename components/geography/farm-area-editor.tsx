@@ -1,13 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { loadLeaflet, type LeafletMap, type LeafletLayerGroup, type LeafletRuntime, type LeafletMouseEvent } from "@/lib/geography/leaflet-runtime";
 import { BrainCircuit, Download, MapPin, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
-import { validateGeoRing, exportGeoJsonFeature, type LngLat, type GeoRing } from "@/lib/geography/farm-geometry";
+import { validateGeoRing, type LngLat, type GeoRing } from "@/lib/geography/farm-geometry";
 
 type Area = { id:string; name:string; kind:"BOUNDARY"|"FOUNDATION"|"PADDOCK"; geometry:{coordinates:[GeoRing]}; areaHectares:number; version:number };
 type Props={farmId:string;farmName:string;lat:number|null;lon:number|null;canEdit:boolean};
 const format=(n:number)=>new Intl.NumberFormat("es-VE",{maximumFractionDigits:3}).format(n);
-export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
+export function FarmAreaEditor({farmId,lat,lon,canEdit}:Props){
  const [areas,setAreas]=useState<Area[]>([]);
  const [points,setPoints]=useState<GeoRing>([]);
  const [kind,setKind]=useState<"BOUNDARY"|"FOUNDATION"|"PADDOCK">("BOUNDARY");
@@ -17,35 +18,29 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
  const [message,setMessage]=useState("");
  const [busy,setBusy]=useState(false);
  const [loaded,setLoaded]=useState(false);
- const [view,setView]=useState({lon:lon??-67,lat:lat??8,zoom:11});
+ const initialView = useRef({lon:lon??-67,lat:lat??8,zoom:11});
  const [mapReady,setMapReady]=useState(false);
  const mapDiv=useRef<HTMLDivElement>(null);
- const map=useRef<any>(null);
- const L=useRef<any>(null);
- const drawing=useRef<any>(null);
- const savedLayers=useRef<any>(null);
+ const map=useRef<LeafletMap|null>(null);
+ const L=useRef<LeafletRuntime|null>(null);
+ const drawing=useRef<LeafletLayerGroup|null>(null);
+ const savedLayers=useRef<LeafletLayerGroup|null>(null);
  const state=useRef({points,editingVertex,canEdit});
  state.current={points,editingVertex,canEdit};
  const endpoint="/api/farms/"+encodeURIComponent(farmId)+"/geo-areas";
- async function reload(){
+ const reload = useCallback(async () => {
    try{const r=await fetch(endpoint,{cache:"no-store"});if(!r.ok)throw Error("No se pudo consultar la finca");const j=await r.json();setAreas(j.areas);setLoaded(true);}
    catch(e){setMessage(e instanceof Error?e.message:"Error de conexión");}
- }
- useEffect(()=>{reload();},[farmId]);
+ }, [endpoint]);
+ useEffect(()=>{void reload();},[reload]);
  useEffect(()=>{
    if(!mapReady || !mapDiv.current || map.current)return;
    let live=true;
    (async()=>{
-     if(!(window as any).L){
-       const script=document.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-       script.integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
-       script.crossOrigin="anonymous";
-       document.head.appendChild(script);
-       await new Promise<void>((resolve,reject)=>{script.onload=()=>resolve();script.onerror=()=>reject(Error("Error cargando el mapa"));});
-     }
+     const leaflet = await loadLeaflet();
      if(!live||!mapDiv.current)return;
-     const leaflet=(window as any).L;L.current=leaflet;
-     const m=leaflet.map(mapDiv.current,{zoomControl:true,attributionControl:true}).setView([view.lat,view.lon],view.zoom);
+     L.current=leaflet;
+     const m=leaflet.map(mapDiv.current,{zoomControl:true,attributionControl:true}).setView([initialView.current.lat,initialView.current.lon],initialView.current.zoom);
      map.current=m;
      leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -53,7 +48,7 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
      }).addTo(m);
      savedLayers.current=leaflet.layerGroup().addTo(m);
      drawing.current=leaflet.layerGroup().addTo(m);
-     m.on("click",(evt:any)=>{
+     m.on("click",(evt:LeafletMouseEvent)=>{
        const x=state.current;if(!x.canEdit)return;
        const point:LngLat=[Number(evt.latlng.lng.toFixed(7)),Number(evt.latlng.lat.toFixed(7))];
        if(x.editingVertex!==null){setPoints(prev=>prev.map((p,i)=>i===x.editingVertex?point:p));setEditingVertex(null);}
@@ -64,8 +59,8 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
    return()=>{live=false;map.current?.remove();map.current=null;};
  },[mapReady]);
  useEffect(()=>{
-   if(!map.current||!L.current)return;
-   const lib=L.current;const m=map.current;
+   if(!map.current||!L.current||!savedLayers.current||!drawing.current)return;
+   const lib=L.current;
    savedLayers.current.clearLayers();
    for(const a of areas){const positions=a.geometry.coordinates[0].map(([x,y])=>[y,x]);if(positions.length<3)continue;
     lib.polygon(positions,{color:a.kind==="BOUNDARY"?"#bd9b62":a.kind==="FOUNDATION"?"#c78a43":"#367c54",weight:3,fillOpacity:.13})
@@ -73,7 +68,7 @@ export function FarmAreaEditor({farmId,farmName,lat,lon,canEdit}:Props){
    }
    drawing.current.clearLayers();
    points.forEach(([x,y],i)=>lib.circleMarker([y,x],{radius:editingVertex===i?9:6,color:"#795c31",fillColor:"#fff",fillOpacity:1,weight:3})
-     .on("click",(e:any)=>{lib.DomEvent.stopPropagation(e);setEditingVertex(i);})
+     .on("click",(e:LeafletMouseEvent)=>{lib.DomEvent.stopPropagation(e);setEditingVertex(i);})
      .addTo(drawing.current));
    if(points.length>=2)lib.polyline(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:3,dashArray:"7 5"}).addTo(drawing.current);
    if(points.length>=3)lib.polygon(points.map(([x,y])=>[y,x]),{color:"#e2a94d",weight:2,fillOpacity:.08}).addTo(drawing.current);

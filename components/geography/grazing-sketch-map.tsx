@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Crosshair, MapPinned } from "lucide-react";
+import { loadLeaflet, type LeafletMap, type LeafletLayerGroup, type LeafletRuntime, type LeafletMouseEvent } from "@/lib/geography/leaflet-runtime";
 import { createPaddockSketch, type LocationPoint } from "@/lib/geography/paddock-sketch";
 import { type GeoRing } from "@/lib/geography/farm-geometry";
 
@@ -14,7 +15,6 @@ type Props = {
   facilities: LocationPoint[];
   onAddFacility?: (kind: LocationPoint["kind"], lat: number, lng: number) => void;
 };
-type LeafletMap = any;
 
 const kindLabels: Record<LocationPoint["kind"], string> = {
   HOUSE: "Casa", CORRAL: "Corral", WATER: "Agua", ACCESS: "Acceso",
@@ -23,14 +23,13 @@ const leafletCss = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const leafletIntegrity = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
 
 export function GrazingSketchMap({ geometry, latitude, longitude, paddocks, facilities, onAddFacility }: Props) {
-  const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [mark, setMark] = useState<LocationPoint["kind"] | null>(null);
   const [mapActive, setMapActive] = useState(false);
   const canvas = useRef<HTMLDivElement>(null);
-  const map = useRef<LeafletMap>(null);
-  const overlays = useRef<LeafletMap>(null);
-  const leaflet = useRef<LeafletMap>(null);
+  const map = useRef<LeafletMap | null>(null);
+  const overlays = useRef<LeafletLayerGroup | null>(null);
+  const leaflet = useRef<LeafletRuntime | null>(null);
   const latest = useRef({ mark, onAddFacility });
   latest.current = { mark, onAddFacility };
   const hasLocation = Boolean(geometry) ||
@@ -41,24 +40,8 @@ export function GrazingSketchMap({ geometry, latitude, longitude, paddocks, faci
     if (!mapActive || !canvas.current || map.current) return;
     let live = true;
     (async () => {
-      if (!(window as any).L) {
-        let script = document.querySelector<HTMLScriptElement>('script[data-ganadia-leaflet="1"]');
-        if (!script) {
-          script = document.createElement("script");
-          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-          script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
-          script.crossOrigin = "anonymous";
-          script.dataset.ganadiaLeaflet = "1";
-          document.head.appendChild(script);
-        }
-        await new Promise<void>((resolve, reject) => {
-          if ((window as any).L) { resolve(); return; }
-          script!.addEventListener("load", () => resolve(), { once: true });
-          script!.addEventListener("error", () => reject(new Error("No se pudo cargar Leaflet.")), { once: true });
-        });
-      }
+      const L = await loadLeaflet();
       if (!live || !canvas.current) return;
-      const L = (window as any).L;
       leaflet.current = L;
       const first = geometry?.ring[0] ?? [longitude ?? -67, latitude ?? 8];
       const m = L.map(canvas.current, { zoomControl: true }).setView([first[1], first[0]], geometry ? 15 : 13);
@@ -73,7 +56,7 @@ export function GrazingSketchMap({ geometry, latitude, longitude, paddocks, faci
         if (tileFailures > 4) setError("Algunas imágenes del mapa no cargaron. Revisa la conexión y vuelve a abrir el visor.");
       });
       overlays.current = L.layerGroup().addTo(m);
-      m.on("click", (event: any) => {
+      m.on("click", (event: LeafletMouseEvent) => {
         const mode = latest.current.mark;
         if (mode && latest.current.onAddFacility) {
           latest.current.onAddFacility(mode, Number(event.latlng.lat.toFixed(7)), Number(event.latlng.lng.toFixed(7)));
