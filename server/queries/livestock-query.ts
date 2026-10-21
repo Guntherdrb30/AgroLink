@@ -61,6 +61,8 @@ export async function getLivestockIndexData(tenantId: string) {
     animals: animals.map((animal) => ({
       id: animal.id,
       internalCode: animal.internalCode,
+      birthDate: animal.birthDate?.toISOString().slice(0, 10) ?? null,
+      estimatedAgeMonths: animal.estimatedAgeMonths,
       visualIdentification: animal.visualIdentification,
       speciesName: animal.species.name,
       breedName: animal.breed?.name ?? null,
