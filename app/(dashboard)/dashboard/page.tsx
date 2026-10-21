@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Beef, ClipboardList, FileSpreadsheet, LandPlot, Plus, Sprout } from "lucide-react";
+import { ArrowRight, Beef, BrainCircuit, ClipboardList, FileSpreadsheet, LandPlot, Landmark, Plus, Sprout } from "lucide-react";
 import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { getCurrentTenant, getCurrentTenantVerification } from "@/lib/auth/session";
 import { getDashboardSnapshot } from "@/server/queries/dashboard-query";
+import { prisma } from "@/lib/db/prisma";
 import { VerificationGate } from "@/components/dashboard/verification-gate";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +12,15 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const context = await getCurrentTenant();
   if (!context) redirect("/onboarding");
-  const [snapshot, verification] = await Promise.all([
+  const [snapshot, verification, farmShortcuts] = await Promise.all([
     getDashboardSnapshot(context.tenant.id),
     getCurrentTenantVerification(),
+    prisma.farm.findMany({
+      where: { tenantId: context.tenant.id },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 30,
+    }),
   ]);
   const role = context.membership.role;
   const canManageFarms = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(role);
@@ -62,6 +69,36 @@ export default async function DashboardPage() {
           })}
         </div>
       </section>
+
+      {canOperate && farmShortcuts.length > 0 && (
+        <section className="space-y-4" aria-labelledby="ganadia-farm-tools-title">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#997943]">Administración por finca</p>
+            <h2 id="ganadia-farm-tools-title" className="mt-1 text-xl font-bold tracking-tight text-[#1d3025] sm:text-2xl">ERP y asesor técnico</h2>
+            <p className="mt-1 text-sm leading-6 text-[#6d7b70]">Accede directamente a los módulos de cada finca, sin mezclar sus registros.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {farmShortcuts.map((farm) => (
+              <article key={farm.id} className="min-w-0 rounded-[22px] border border-[#e5e9e3] bg-white p-4 shadow-sm sm:p-5">
+                <h3 className="mb-3 break-words text-base font-bold text-[#233a2b]">{farm.name}</h3>
+                <div className="grid gap-2">
+                  <Link href={`/farms/${encodeURIComponent(farm.id)}/erp`} className="flex min-h-12 items-center gap-3 rounded-xl bg-[#234a34] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1b3728] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
+                    <Landmark className="size-5 shrink-0" aria-hidden={true}/>
+                    <span className="min-w-0 flex-1">ERP administrativo</span>
+                    <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
+                  </Link>
+                  <Link href={`/farms/${encodeURIComponent(farm.id)}/geografia/asesor`} className="flex min-h-12 items-center gap-3 rounded-xl border border-[#d9e3d7] bg-[#f3f7f1] px-4 text-sm font-semibold text-[#284432] transition-colors hover:bg-[#e6efe2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
+                    <BrainCircuit className="size-5 shrink-0" aria-hidden={true}/>
+                    <span className="min-w-0 flex-1">Asesor de fundaciones y pastoreo</span>
+                    <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="text-xs leading-5 text-[#6d7b70]">El asesor disponible realiza estudios técnicos de pastoreo; todavía no es un chat generativo conectado a OpenAI.</p>
+        </section>
+      )}
 
       <section className="space-y-4" aria-labelledby="ganadia-actions-title">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
