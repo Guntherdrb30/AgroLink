@@ -240,6 +240,7 @@ model Tenant {
   farms                Farm[]
   geoAreas             FarmGeoArea[]
   grazingPlans         FarmGrazingPlan[]
+  movements            LivestockMovement[]
   employees            Employee[]
   fieldWorkOrders      FieldWorkOrder[]
   marketplaceItems     MarketplaceListing[]
@@ -352,6 +353,8 @@ model Farm {
   livestockOperations LivestockOperation[]
   geoAreas            FarmGeoArea[]
   grazingPlans        FarmGrazingPlan[]
+  outgoingMovements   LivestockMovement[] @relation("MovementFromFarm")
+  incomingMovements   LivestockMovement[] @relation("MovementToFarm")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -490,6 +493,7 @@ model Animal {
   vaccinationRecords  AnimalVaccinationRecord[]
   treatmentRecords    AnimalTreatmentRecord[]
   operationRows       LivestockOperationAnimal[]
+  movements           LivestockMovementItem[]
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
@@ -814,4 +818,37 @@ model FarmGrazingPlan {
   farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, farmId, createdAt])
+}
+
+model LivestockMovement {
+  id             String @id
+  tenantId       String
+  fromFarmId     String
+  toFarmId       String
+  fromAreaId     String?
+  toAreaId       String?
+  movementDate   DateTime
+  reason         String
+  notes          String?
+  actorUserId    String
+  requestKey     String
+  createdAt      DateTime @default(now())
+  tenant         Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  fromFarm       Farm @relation("MovementFromFarm", fields: [fromFarmId], references: [id], onDelete: Restrict)
+  toFarm         Farm @relation("MovementToFarm", fields: [toFarmId], references: [id], onDelete: Restrict)
+  animals        LivestockMovementItem[]
+  @@unique([tenantId, requestKey])
+  @@index([tenantId, fromFarmId, movementDate])
+  @@index([tenantId, toFarmId, movementDate])
+}
+model LivestockMovementItem {
+  id         String @id
+  tenantId   String
+  movementId String
+  animalId   String
+  codeSnapshot String
+  movement   LivestockMovement @relation(fields: [movementId], references: [id], onDelete: Restrict)
+  animal     Animal @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  @@unique([movementId, animalId])
+  @@index([tenantId, animalId])
 }
