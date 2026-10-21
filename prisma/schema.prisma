@@ -241,6 +241,12 @@ model Tenant {
   geoAreas             FarmGeoArea[]
   grazingPlans         FarmGrazingPlan[]
   movements            LivestockMovement[]
+  erpPartners          FarmErpPartner[]
+  erpItems             FarmErpItem[]
+  erpStockMoves        FarmErpStockMove[]
+  erpFinances          FarmErpFinance[]
+  erpStaff             FarmErpStaff[]
+  erpPayrolls          FarmErpPayroll[]
   employees            Employee[]
   fieldWorkOrders      FieldWorkOrder[]
   marketplaceItems     MarketplaceListing[]
@@ -355,6 +361,12 @@ model Farm {
   grazingPlans        FarmGrazingPlan[]
   outgoingMovements   LivestockMovement[] @relation("MovementFromFarm")
   incomingMovements   LivestockMovement[] @relation("MovementToFarm")
+  erpPartners         FarmErpPartner[]
+  erpItems            FarmErpItem[]
+  erpStockMoves       FarmErpStockMove[]
+  erpFinances         FarmErpFinance[]
+  erpStaff            FarmErpStaff[]
+  erpPayrolls         FarmErpPayroll[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -701,6 +713,8 @@ model Employee {
   active     Boolean  @default(true)
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   operationAssignments OperationWorker[]
+  erpAssignments FarmErpStaff[]
+  erpPayrolls FarmErpPayroll[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -851,4 +865,127 @@ model LivestockMovementItem {
   animal     Animal @relation(fields: [animalId], references: [id], onDelete: Restrict)
   @@unique([movementId, animalId])
   @@index([tenantId, animalId])
+}
+
+
+// ERP agropecuario V1: los códigos de estado se validan en el servicio.
+// Los importes están expresados en centavos de su moneda ORIGINAL, sin tasas implícitas.
+model FarmErpPartner {
+  id        String @id
+  tenantId  String
+  farmId    String
+  name      String
+  kind      String // SUPPLIER, CUSTOMER, BOTH
+  rif       String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm      Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  moves     FarmErpStockMove[]
+  finances  FarmErpFinance[]
+  @@unique([farmId,name])
+  @@index([tenantId,farmId])
+}
+model FarmErpItem {
+  id          String @id
+  tenantId    String
+  farmId      String
+  sku         String
+  name        String
+  kind        String // SUPPLY, ASSET
+  unit        String
+  quantity    Decimal @default(0) @db.Decimal(16,3)
+  minQuantity Decimal @default(0) @db.Decimal(16,3)
+  currency    String @default("USD")
+  unitCostCents Int?
+  serial      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm        Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  moves       FarmErpStockMove[]
+  @@unique([farmId,sku])
+  @@index([tenantId,farmId,kind])
+}
+model FarmErpStockMove {
+  id          String @id
+  tenantId    String
+  farmId      String
+  itemId      String
+  partnerId   String?
+  kind        String // RECEIPT, USE, ADJUST_PLUS, ADJUST_MINUS
+  quantity    Decimal @db.Decimal(16,3)
+  unitCostCents Int?
+  note        String?
+  requestKey  String
+  actorUserId String
+  createdAt   DateTime @default(now())
+  tenant      Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm        Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  item        FarmErpItem @relation(fields:[itemId],references:[id],onDelete:Restrict)
+  partner     FarmErpPartner? @relation(fields:[partnerId],references:[id],onDelete:Restrict)
+  @@unique([farmId,requestKey])
+  @@index([tenantId,farmId,createdAt])
+}
+model FarmErpFinance {
+  id          String @id
+  tenantId    String
+  farmId      String
+  partnerId   String?
+  kind        String // INCOME, EXPENSE, PAYABLE, RECEIVABLE, PAYMENT_IN, PAYMENT_OUT
+  currency    String
+  amountCents Int
+  description String
+  reference   String?
+  relatedId   String? // payment links to AP/AR within same farm
+  dueAt       DateTime?
+  occurredAt  DateTime
+  requestKey  String
+  actorUserId String
+  createdAt   DateTime @default(now())
+  tenant      Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm        Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  partner     FarmErpPartner? @relation(fields:[partnerId],references:[id],onDelete:Restrict)
+  @@unique([farmId,requestKey])
+  @@index([tenantId,farmId,occurredAt])
+  @@index([farmId,relatedId])
+}
+model FarmErpStaff {
+  id          String @id
+  tenantId    String
+  farmId      String
+  employeeId  String
+  role        String
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  tenant      Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm        Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  employee    Employee @relation(fields:[employeeId],references:[id],onDelete:Restrict)
+  @@unique([farmId,employeeId])
+  @@index([tenantId,farmId,active])
+}
+model FarmErpPayroll {
+  id          String @id
+  tenantId    String
+  farmId      String
+  employeeId  String
+  startAt     DateTime
+  endAt       DateTime
+  currency    String
+  baseCents   Int
+  extraCents  Int
+  deductionCents Int
+  netCents    Int
+  status      String @default("DRAFT") // sólo borradores en V1
+  note        String?
+  actorUserId String
+  createdAt   DateTime @default(now())
+  tenant      Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade)
+  farm        Farm @relation(fields:[farmId],references:[id],onDelete:Cascade)
+  employee    Employee @relation(fields:[employeeId],references:[id],onDelete:Restrict)
+  @@unique([farmId,employeeId,startAt,endAt,currency])
+  @@index([tenantId,farmId,createdAt])
 }

@@ -10,9 +10,6 @@ type Props = { params: Promise<{ farmId: string }> };
 const modules = [
   { label: "Documentos", Icon: FileText, desc: "RIF, titularidad, permisos y vencimientos" },
   { label: "Hierros", Icon: Stamp, desc: "Marcas ganaderas y soportes de registro" },
-  { label: "Inventario", Icon: Package, desc: "Alimentos, medicinas, combustible e insumos" },
-  { label: "Administración", Icon: Landmark, desc: "Ingresos, gastos, cuentas por pagar y cobrar" },
-  { label: "Empleados", Icon: Users, desc: "Personal y costos de la finca" },
   { label: "Reportes", Icon: TrendingUp, desc: "Resultado operativo y comparativos" },
 ];
 export default async function FarmCenterPage({ params }: Props) {
@@ -73,6 +70,7 @@ export default async function FarmCenterPage({ params }: Props) {
           <Calculator className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold">Simulador de inversiones</h3><p className="text-xs leading-5 text-[#738074]">Comparar escenarios bovinos y porcinos</p></div><ArrowRight className="size-4 text-[#84673a]"/>
         </Link>
         <Link href={`/farms/${encodeURIComponent(farmId)}/movimientos`} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm transition-colors hover:border-[#bba274]"><MapPinned className="size-7 shrink-0 text-[#84673a]"/><div className="flex-1"><h3 className="font-bold">Fundaciones y rotación</h3><p className="text-xs leading-5 text-[#738074]">Trasladar ganado, rastrear origen y destino</p></div><ArrowRight className="size-4 text-[#84673a]"/></Link>
+        <Link href={`/farms/${encodeURIComponent(farmId)}/erp`} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#dfe6dc] bg-white p-4 shadow-sm"><Landmark className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold">ERP Administrativo</h3><p className="text-xs leading-5 text-[#738074]">Proveedores, compras, inventario, activos, finanzas y personal</p></div><ArrowRight className="size-4 text-[#84673a]"/></Link>
         {modules.map(({label,Icon,desc})=><article key={label} className="flex min-h-24 items-center gap-4 rounded-[20px] border border-[#e3e7e0] bg-white p-4 opacity-80"><Icon className="size-7 shrink-0 text-[#84673a]"/><div className="min-w-0 flex-1"><h3 className="font-bold text-[#20372a]">{label}</h3><p className="text-xs leading-5 text-[#738074]">{desc}</p></div><span className="shrink-0 rounded-full bg-[#f1f1ec] px-2 py-1 text-[10px] font-semibold text-[#707b70]">En preparación</span></article>)}
       </div>
     </section>
