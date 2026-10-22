@@ -89,7 +89,7 @@ export default async function DashboardPage() {
                     <span className="min-w-0 flex-1">ERP administrativo</span>
                     <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
                   </Link>
-                  {role!=="ACCOUNTING" && <Link href={`/farms/${encodeURIComponent(farm.id)}/geografia/asesor` className="flex min-h-12 items-center gap-3 rounded-xl border border-[#d9e3d7] bg-[#f3f7f1] px-4 text-sm font-semibold text-[#284432] transition-colors hover:bg-[#e6efe2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
+                  {role!=="ACCOUNTING" && <Link href={`/farms/${encodeURIComponent(farm.id)}/geografia/asesor`} className="flex min-h-12 items-center gap-3 rounded-xl border border-[#d9e3d7] bg-[#f3f7f1] px-4 text-sm font-semibold text-[#284432] transition-colors hover:bg-[#e6efe2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
                     <BrainCircuit className="size-5 shrink-0" aria-hidden={true}/>
                     <span className="min-w-0 flex-1">Asesor de fundaciones y pastoreo</span>
                     <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
