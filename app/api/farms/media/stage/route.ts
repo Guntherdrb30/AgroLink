@@ -3,6 +3,7 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 import { getCurrentTenant } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import {
   createFarmUploadPath,
   MAX_SERVER_FARM_UPLOAD_BYTES,
@@ -65,6 +66,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La foto debe optimizarse antes de subirla." }, { status: 413, headers: noStore });
   }
 
+  if(!farmId&&!["TENANT_OWNER","TENANT_ADMIN"].includes(context.membership.role))return NextResponse.json({error:"Solo el administrador puede crear una finca"},{status:403,headers:noStore});
+  if(farmId){const allowed=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);if(allowed&&!allowed.includes(farmId))return NextResponse.json({error:"Finca no autorizada"},{status:403,headers:noStore});}
   if (farmId) {
     const farm = await prisma.farm.findFirst({
       where: { id: farmId, tenantId: context.tenant.id },
