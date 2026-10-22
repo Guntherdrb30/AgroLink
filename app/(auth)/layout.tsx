@@ -39,7 +39,7 @@ export default function AuthLayout({
           </div>
           <div className="rounded-[28px] border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-medium text-muted-foreground">
-              Capa privada
+              Área privada
             </p>
             <p className="mt-2 text-lg font-semibold">
               Panel SaaS con foco en operación por empresa.
