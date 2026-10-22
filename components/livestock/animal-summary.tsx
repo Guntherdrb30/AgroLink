@@ -1,3 +1,4 @@
+import { textoEs,saludEs,reproduccionEs,lineaEs } from "@/lib/i18n/labels";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -65,9 +66,9 @@ export function AnimalSummary({ animal, mainPhotoUrl }: AnimalSummaryProps) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{animal.healthStatus.replaceAll("_", " ")}</Badge>
+                <Badge variant="outline">{textoEs(animal.healthStatus,saludEs)}</Badge>
                 <Badge variant="secondary">
-                  {animal.reproductiveStatus.replaceAll("_", " ")}
+                  {textoEs(animal.reproductiveStatus,reproduccionEs)}
                 </Badge>
               </div>
             </div>
@@ -81,7 +82,7 @@ export function AnimalSummary({ animal, mainPhotoUrl }: AnimalSummaryProps) {
               <p>Sexo: {animal.sex.replaceAll("_", " ")}</p>
               <p>Finca: {animal.farmName}</p>
               <p>Zona: {animal.lotOrZone || "Pendiente"}</p>
-              <p>Linea: {animal.productiveLine.replaceAll("_", " ")}</p>
+              <p>Línea: {textoEs(animal.productiveLine,lineaEs)}</p>
               <p>Origen: {animal.origin || "No definido"}</p>
               <p>Chip: {animal.chipCode || "No registrado"}</p>
               <p>
