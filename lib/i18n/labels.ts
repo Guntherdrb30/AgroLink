@@ -24,3 +24,16 @@ export function textoEs(valor:string | null | undefined, diccionario:Record<stri
  if(!valor)return "Sin especificar";
  return diccionario[valor] ?? valor.replaceAll("_"," ").toLocaleLowerCase("es-VE");
 }
+
+export const saludEs:Record<string,string>={
+ HEALTHY:"Sano",SICK:"Enfermo",IN_TREATMENT:"En tratamiento",UNDER_TREATMENT:"En tratamiento",
+ RECOVERING:"En recuperación",UNKNOWN:"Sin evaluar",DECEASED:"Fallecido",QUARANTINED:"En cuarentena",
+};
+export const reproduccionEs:Record<string,string>={
+ OPEN:"Vacía",PREGNANT:"Preñada",LACTATING:"En lactancia",IN_HEAT:"En celo",
+ BREEDING:"Reproductiva",NOT_BREEDING:"No reproductiva",UNKNOWN:"Sin evaluar",
+};
+export const lineaEs:Record<string,string>={
+ BREEDING:"Cría",FATTENING:"Engorde",DAIRY:"Leche",MEAT:"Carne",DUAL_PURPOSE:"Doble propósito",
+ REPRODUCTION:"Reproducción",OTHER:"Otra",
+};
