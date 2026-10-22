@@ -28,15 +28,17 @@ export default async function DashboardPage() {
   const canManageFarms = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(role);
   const canImport = canManageFarms;
   const canOperate = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"].includes(role);
-  const farmReadable = role !== "ACCOUNTING";
+  const farmReadable = !["ACCOUNTING", "VETERINARIAN"].includes(role);
   const firstName = (context.user.name || "").trim().split(/\s+/)[0] || "bienvenido";
   const cards = [
+    ...(role === "VETERINARIAN" ? [{ title: "Fincas asignadas", amount: snapshot.farmsCount, hint: "Acceso veterinario", href: "/veterinaria", Icon: LandPlot }] : []),
     ...(farmReadable ? [{ title: "Fincas", amount: snapshot.farmsCount, hint: "Registradas", href: "/farms?new=1", Icon: LandPlot }] : []),
     ...(farmReadable ? [{ title: "Ganado", amount: snapshot.animalsCount, hint: "Animales registrados", href: "/livestock", Icon: Beef }] : []),
     ...(farmReadable ? [{ title: "Jornadas", amount: snapshot.operationsCount, hint: "Jornadas de campo", href: "/operations", Icon: ClipboardList }] : []),
     ...(farmReadable ? [{ title: "Publicaciones", amount: snapshot.listingsCount, hint: "Registros comerciales", href: null, Icon: Sprout }] : []),
   ];
   const actions = [
+    ...(role === "VETERINARIAN" ? [{ label: "Área veterinaria", detail: "Sanidad de las fincas asignadas", href: "/veterinaria", Icon: BrainCircuit }] : []),
     ...(canManageFarms ? [{ label: "Gestionar fincas", detail: "Crear y actualizar los datos de tus fincas", href: "/farms", Icon: LandPlot }] : []),
     ...(canOperate ? [{ label: "Registrar ganado", detail: "Organizar el inventario e historial animal", href: "/livestock", Icon: Beef }] : []),
     ...(canOperate ? [{ label: "Crear jornada", detail: "Planificar operaciones de campo", href: "/operations", Icon: ClipboardList }] : []),
