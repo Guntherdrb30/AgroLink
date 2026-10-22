@@ -7,7 +7,7 @@ export const dynamic="force-dynamic";
 type Context={params:Promise<{farmId:string}>};
 const out=(x:unknown,status=200)=>NextResponse.json(x,{status,headers:{"Cache-Control":"private, no-store"}});
 export async function GET(_:Request,{params}:Context){
- const {farmId}=await params;const current=await getCurrentTenant();if(!current)return out({error:"Sin sesión"},401);const allowed=await allowedFarmIds(current.tenant.id,current.user.id,current.membership.role);if(allowed&&!allowed.includes(farmId))return out({error:"Finca no autorizada"},403);
+ const {farmId}=await params;const current=await getCurrentTenant();if(!current)return out({error:"Sin sesión"},401);if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","OPERATOR"].includes(current.membership.role))return out({error:"Sin permiso"},403);const allowed=await allowedFarmIds(current.tenant.id,current.user.id,current.membership.role);if(allowed&&!allowed.includes(farmId))return out({error:"Finca no autorizada"},403);
  const source=await prisma.farm.findFirst({where:{id:farmId,tenantId:current.tenant.id},select:{id:true}});
  if(!source)return out({error:"Finca no encontrada"},404);
  const [farms,animals,areas,moves]=await Promise.all([
