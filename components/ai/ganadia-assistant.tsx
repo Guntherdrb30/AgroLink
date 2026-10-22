@@ -1,4 +1,5 @@
 "use client";
+import { textoEs,saludEs } from "@/lib/i18n/labels";
 import { useState } from "react";
 import { Bot, X, Send, LoaderCircle } from "lucide-react";
 type ChatMessage = { from: "user" | "assistant"; message: string };
@@ -22,7 +23,7 @@ export function GanadiaAssistant({ financeOnly = false, veterinaryOnly = false }
    let message="";
    if(data.kind==="farms")message="Fincas autorizadas: "+(data.farms.map((f:Farm)=>f.name).join(", ")||"ninguna asignada");
    else if(data.kind==="livestock")message="Ganado registrado en el alcance autorizado: "+data.total+" animal(es).";
-   else if(data.kind==="health")message="Estados sanitarios: "+data.grouped.map((r:{healthStatus:string;_count:{_all:number}})=>r.healthStatus+": "+r._count._all).join("; ")+".";
+   else if(data.kind==="health")message="Estados sanitarios: "+data.grouped.map((r:{healthStatus:string;_count:{_all:number}})=>textoEs(r.healthStatus,saludEs)+": "+r._count._all).join("; ")+".";
    else if(data.kind==="sale_preparation")message="Preselección: "+data.count+" animales con peso >= "+data.minWeightKg+" kg. Peso total registrado: "+data.totalWeightKg.toLocaleString("es-VE")+" kg. No se ha reservado ni vendido ningún animal. No se aplica precio sin referencia validada.";
    else if(data.kind==="finance")message="Movimientos registrados: "+(data.records.map((r:{currency:string;kind:string;_sum:{amountCents:number|null}})=>r.kind+" ("+r.currency+"): "+((r._sum.amountCents||0)/100).toLocaleString("es-VE")).join("; ")||"sin movimientos")+". Datos por moneda; no equivalen a utilidad contable.";
    else message=data.note||"Consulta completada.";
