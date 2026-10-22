@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 
 import { deleteFarmAction } from "@/server/actions/farm-actions";
@@ -33,6 +34,9 @@ export default async function FarmDetailPage({ params, searchParams }: FarmDetai
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"],
   });
 
+  if (!tenantContext) notFound();
+  const granted=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  if(granted&&!granted.includes(farmId))notFound();
   const farm = await findFarmById(farmId);
 
   if (!tenantContext || !farm || farm.tenantId !== tenantContext.tenant.id) {
