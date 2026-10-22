@@ -59,6 +59,7 @@ export function listAnimalsForRelations(tenantId: string, excludeAnimalId?: stri
     },
     select: {
       id: true,
+      farmId: true,
       internalCode: true,
       visualIdentification: true,
     },
