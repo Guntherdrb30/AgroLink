@@ -29,13 +29,16 @@ function toTimelineDate(date: Date) {
   return date.toISOString();
 }
 
-export async function getLivestockIndexData(tenantId: string) {
-  const [animals, farms, relationAnimals] = await Promise.all([
+export async function getLivestockIndexData(tenantId: string, granted: string[] | null = null) {
+  const [allAnimals, allFarms, allRelationAnimals] = await Promise.all([
     listAnimalsByTenant(tenantId),
     listFarmsByTenant(tenantId),
     listAnimalsForRelations(tenantId),
   ]);
 
+  const animals=allAnimals.filter(a=>!granted||granted.includes(a.farmId));
+  const farms=allFarms.filter(f=>!granted||granted.includes(f.id));
+  const relationAnimals=allRelationAnimals.filter(a=>!granted||granted.includes(a.farmId));
   const files = await listFilesForEntities(
     "animal",
     animals.map((animal) => animal.id),
