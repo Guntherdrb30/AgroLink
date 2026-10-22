@@ -12,12 +12,13 @@ import {
 
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
 import { AnimalList } from "@/components/livestock/animal-list";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { getLivestockIndexData } from "@/server/queries/livestock-query";
 
 export const dynamic = "force-dynamic";
 
 const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"] as const;
-const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"];
+const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN"];
 
 export default async function LivestockPage({
   searchParams,
@@ -28,7 +29,8 @@ export default async function LivestockPage({
   await requireOperationalTenant();
   if (!tenantContext) return null;
 
-  const data = await getLivestockIndexData(tenantContext.tenant.id);
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const data = await getLivestockIndexData(tenantContext.tenant.id,grants);
   const { error, success } = await searchParams;
   const canManage = managementRoles.includes(tenantContext.membership.role);
   const hasFarms = data.farms.length > 0;
