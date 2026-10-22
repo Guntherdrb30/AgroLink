@@ -5,7 +5,7 @@ import { OperationList } from "@/components/operations/operation-list";
 import { getLivestockOperationsIndexData } from "@/server/queries/livestock-operation-query";
 
 export const dynamic = "force-dynamic";
-const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "ACCOUNTING", "OPERATOR"] as const;
+const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"] as const;
 const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"];
 export default async function OperationsPage() {
   const { tenantContext } = await requireRole({ tenant: [...viewerRoles] });
