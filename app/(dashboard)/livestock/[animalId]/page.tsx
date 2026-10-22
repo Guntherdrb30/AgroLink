@@ -26,7 +26,7 @@ const viewerRoles = [
   "OPERATOR",
 ] as const;
 
-const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"];
+const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"];
 
 type AnimalDetailPageProps = {
   params: Promise<{
@@ -47,14 +47,14 @@ export default async function AnimalDetailPage({
     notFound();
   }
 
-  const data = await getAnimalDetailData(tenantContext.tenant.id, animalId);
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const data = await getAnimalDetailData(tenantContext.tenant.id, animalId, grants);
 
   if (!data) {
     notFound();
   }
 
-  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
-  if(grants&&!grants.includes(data.animal.farmId))notFound();
+
   const canManage = managementRoles.includes(tenantContext.membership.role);
 
   return (
