@@ -9,6 +9,7 @@ import {
   type FarmUploadKind,
 } from "@/lib/blob/farm-upload-policy";
 import { getCurrentTenant } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { prisma } from "@/lib/db/prisma";
 import { hasTenantRole } from "@/lib/permissions/rbac";
 
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
   const validation = validateFarmUploadFile(kind as FarmUploadKind, payload.filename, payload.contentType, payload.size);
   if (validation) return NextResponse.json({ error: validation }, { status: 400, headers: noStore });
 
+  if(!farmId&&!["TENANT_OWNER","TENANT_ADMIN"].includes(context.membership.role))return NextResponse.json({error:"Solo el administrador puede crear una finca"},{status:403,headers:noStore});
+  if(farmId){const allowed=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);if(allowed&&!allowed.includes(farmId))return NextResponse.json({error:"Finca no autorizada"},{status:403,headers:noStore});}
   if (farmId) {
     const farm = await prisma.farm.findFirst({
       where: { id: farmId, tenantId: context.tenant.id },
