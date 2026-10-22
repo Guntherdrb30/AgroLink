@@ -2,17 +2,19 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCheck, ClipboardList, FileSpreadsheet, Plus, Sprout } from "lucide-react";
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
 import { OperationList } from "@/components/operations/operation-list";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { getLivestockOperationsIndexData } from "@/server/queries/livestock-operation-query";
 
 export const dynamic = "force-dynamic";
 const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"] as const;
-const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"];
+const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN"];
 export default async function OperationsPage() {
   const { tenantContext } = await requireRole({ tenant: [...viewerRoles] });
   await requireOperationalTenant();
   if (!tenantContext) return null;
   const canManage = managementRoles.includes(tenantContext.membership.role);
-  const data = await getLivestockOperationsIndexData(tenantContext.tenant.id);
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const data = await getLivestockOperationsIndexData(tenantContext.tenant.id,grants);
   const cards = [
     { label: "Programadas", value: data.metrics.planned, Icon: CalendarDays },
     { label: "Por revisar", value: data.metrics.pendingApplication, Icon: ClipboardList },
