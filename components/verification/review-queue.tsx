@@ -22,7 +22,7 @@ export function ReviewQueue({ profiles }: ReviewQueueProps) {
       <Card>
         <CardContent className="p-6">
           <p className="text-sm text-muted-foreground">
-            No hay perfiles en cola de revision.
+            No hay perfiles en cola de revisión.
           </p>
         </CardContent>
       </Card>
@@ -57,13 +57,13 @@ export function ReviewQueue({ profiles }: ReviewQueueProps) {
               />
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" name="action" value="start_review" variant="outline">
-                  Marcar en revision
+                  Marcar en revisión
                 </Button>
                 <Button type="submit" name="action" value="approve">
                   Aprobar
                 </Button>
                 <Button type="submit" name="action" value="request_fix" variant="outline">
-                  Pedir correccion
+                  Pedir corrección
                 </Button>
                 <Button type="submit" name="action" value="reject" variant="outline">
                   Rechazar

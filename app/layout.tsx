@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { clerkSpanish } from "@/lib/i18n/clerk-es";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
 import { FloatingWhatsAppButton } from "@/components/shared/floating-whatsapp-button";
@@ -62,7 +63,7 @@ export default function RootLayout({
       <body
         className={`${sans.variable} ${mono.variable} bg-background text-foreground antialiased`}
       >
-        <ClerkProvider>
+        <ClerkProvider localization={clerkSpanish}>
           <PwaProvider />
           {children}
           <FloatingWhatsAppButton />

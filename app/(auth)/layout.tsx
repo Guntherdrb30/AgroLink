@@ -20,29 +20,29 @@ export default function AuthLayout({
             Acceso institucional
           </p>
           <h1 className="text-5xl font-semibold leading-tight text-balance">
-            Gestion sobria para un producto agropecuario serio.
+            Gestión sobria para un producto agropecuario serio.
           </h1>
           <p className="text-base leading-8 text-muted-foreground">
-            El acceso de GanadIA esta preparado para multiples empresas, multiples roles,
-            Google como metodo adicional y una experiencia lista para evolucionar
-            a onboarding, verificacion y soporte.
+            El acceso de GanadIA está preparado para múltiples empresas, múltiples roles,
+            Google como método adicional y una experiencia lista para evolucionar
+            a onboarding, verificación y soporte.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-[28px] border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-medium text-muted-foreground">
-              Capa publica
+              Capa pública
             </p>
             <p className="mt-2 text-lg font-semibold">
-              Mercado verificado y catalogos comerciales.
+              Mercado verificado y catálogos comerciales.
             </p>
           </div>
           <div className="rounded-[28px] border border-border bg-card p-6 shadow-sm">
             <p className="text-sm font-medium text-muted-foreground">
-              Capa privada
+              Área privada
             </p>
             <p className="mt-2 text-lg font-semibold">
-              Panel SaaS con foco en operacion por empresa.
+              Panel SaaS con foco en operación por empresa.
             </p>
           </div>
         </div>

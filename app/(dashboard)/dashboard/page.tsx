@@ -64,7 +64,7 @@ export default async function DashboardPage() {
       <section className="space-y-4" aria-labelledby="ganadia-summary-title">
         <div className="flex items-center justify-between gap-3">
           <h2 id="ganadia-summary-title" className="text-xl font-bold tracking-tight text-[#1d3025] sm:text-2xl">Resumen general</h2>
-          <span className="text-xs font-medium text-[#77827a]">Datos de tu empresa</span>
+          <span className="text-xs font-medium text-[#77827a]">Datos de las fincas autorizadas</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {cards.map(({ title, amount, hint, href, Icon }) => {

@@ -37,9 +37,9 @@ export default async function VerificationPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Verificacion"
-        title="Centro de verificacion de la empresa"
-        description="Carga documentos, envia expedientes y monitorea el estado de aprobacion antes de habilitar operacion completa."
+        eyebrow="Verificación"
+        title="Centro de verificación de la empresa"
+        description="Carga documentos, envía expedientes y monitorea el estado de aprobación antes de habilitar operación completa."
       />
       <Card>
         <CardHeader>
@@ -47,7 +47,7 @@ export default async function VerificationPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Clerk gestiona los codigos de acceso. AgroLynk enviara avisos sobre tu empresa y sus verificaciones.
+            Clerk gestiona los códigos de acceso. AgroLynk envíara avisos sobre tu empresa y sus verificaciónes.
           </p>
           {notificationsConfigured() ? (
             <form action={sendWelcomeEmailAction}>
@@ -55,7 +55,7 @@ export default async function VerificationPage() {
             </form>
           ) : (
             <p className="text-sm font-medium text-amber-800">
-              El servicio de notificaciones esta pendiente de activar por el administrador.
+              El servicio de notificaciones está pendiente de activar por el administrador.
             </p>
           )}
         </CardContent>

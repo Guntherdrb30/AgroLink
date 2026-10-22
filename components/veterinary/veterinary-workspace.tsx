@@ -1,4 +1,5 @@
 "use client";
+import { textoEs,saludEs,reproduccionEs } from "@/lib/i18n/labels";
 import { useState } from "react";
 import { VeterinaryClinicalForm } from "@/components/veterinary/veterinary-clinical-form";
 type Farm={id:string;name:string};
@@ -15,7 +16,7 @@ export function VeterinaryWorkspace({farms,canRecord=false}:{farms:Farm[];canRec
   {selected&&!loading&&<p className="text-sm font-medium">{animals.length} animales recuperados (máximo 500 por consulta).</p>}
   {selected&&canRecord&&<VeterinaryClinicalForm key={selected} farmId={selected} animals={animals} onSaved={async()=>{await load(selected)}}/>}
   <div className="grid gap-3 sm:grid-cols-2">{animals.map(a=><article key={a.id} className="space-y-2 rounded-2xl border bg-white p-4">
-   <h2 className="font-bold">{a.internalCode} {a.visualIdentification?"· "+a.visualIdentification:""}</h2><p className="text-sm">Sanidad: {a.healthStatus} · Reproducción: {a.reproductiveStatus}</p>
+   <h2 className="font-bold">{a.internalCode} {a.visualIdentification?"· "+a.visualIdentification:""}</h2><p className="text-sm">Sanidad: {textoEs(a.healthStatus,saludEs)} · Reproducción: {textoEs(a.reproductiveStatus,reproduccionEs)}</p>
    <p className="text-xs">Identificación electrónica: {a.chipCode||"No registrada"}</p>
    <h3 className="text-sm font-bold">Vacunas recientes</h3>
    {a.vaccinationRecords.length?a.vaccinationRecords.map(v=><p key={v.id} className="text-xs">{v.vaccineName} · {new Date(v.appliedAt).toLocaleDateString("es-VE")}</p>):<p className="text-xs text-[#718074]">Sin vacunas registradas</p>}

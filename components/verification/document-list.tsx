@@ -1,3 +1,4 @@
+import { textoEs } from "@/lib/i18n/labels";
 import Link from "next/link";
 
 import { FilePreviewGrid } from "@/components/storage/file-preview-grid";
@@ -42,7 +43,7 @@ export function DocumentList({ title, documents }: DocumentListProps) {
                   <div>
                     <p className="text-sm font-medium">{document.fileName}</p>
                     <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      {document.type}
+                      {textoEs(document.type)}
                     </p>
                   </div>
                   <Link

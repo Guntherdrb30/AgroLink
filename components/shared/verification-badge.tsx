@@ -11,11 +11,11 @@ const styles: Record<
     className: "border-amber-200 bg-amber-50 text-amber-800",
   },
   IN_REVIEW: {
-    label: "En revision",
+    label: "En revisión",
     className: "border-sky-200 bg-sky-50 text-sky-800",
   },
   REQUIRES_FIX: {
-    label: "Requiere correccion",
+    label: "Requiere corrección",
     className: "border-orange-200 bg-orange-50 text-orange-800",
   },
   VERIFIED: {
