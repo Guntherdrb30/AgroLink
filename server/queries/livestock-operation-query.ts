@@ -11,13 +11,16 @@ function decimalToString(value: { toString(): string } | null | undefined) {
   return value ? value.toString() : null;
 }
 
-export async function getLivestockOperationsIndexData(tenantId: string) {
-  const [operations, farms, animals] = await Promise.all([
+export async function getLivestockOperationsIndexData(tenantId: string, granted: string[] | null = null) {
+  const [allOperations, allFarms, allAnimals] = await Promise.all([
     listLivestockOperationsByTenant(tenantId),
     listFarmsByTenant(tenantId),
     listAnimalsByTenant(tenantId),
   ]);
 
+  const operations=allOperations.filter(o=>!granted||granted.includes(o.farmId));
+  const farms=allFarms.filter(f=>!granted||granted.includes(f.id));
+  const animals=allAnimals.filter(a=>!granted||granted.includes(a.farmId));
   return {
     metrics: {
       totalOperations: operations.length,
