@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { previewLivestockWorkbook, MAX_PREVIEW_BYTES, IMPORT_FIELDS, type MappingOverrides } from "@/lib/imports/livestock-preview";
 
 export const runtime = "nodejs";
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
       select: { id: true, name: true },
     });
     if (!farm) return NextResponse.json({ error: "Farm not found" }, { status: 404 });
+    const granted=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);
+    if(granted&&!granted.includes(farmId))return NextResponse.json({error:"Farm not authorized"},{status:403});
     let overrides: MappingOverrides = {};
     const mappingRaw = formData.get("mapping");
     if (typeof mappingRaw === "string" && mappingRaw.length < 2000) {
