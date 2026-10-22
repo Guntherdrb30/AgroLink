@@ -38,7 +38,8 @@ export async function getLivestockIndexData(tenantId: string, granted: string[] 
 
   const animals=allAnimals.filter(a=>!granted||granted.includes(a.farmId));
   const farms=allFarms.filter(f=>!granted||granted.includes(f.id));
-  const relationAnimals=allRelationAnimals.filter(a=>!granted||granted.includes(a.farmId));
+  const permittedAnimalIds=new Set(animals.map(a=>a.id));
+  const relationAnimals=allRelationAnimals.filter(a=>permittedAnimalIds.has(a.id));
   const files = await listFilesForEntities(
     "animal",
     animals.map((animal) => animal.id),
