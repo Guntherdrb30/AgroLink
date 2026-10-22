@@ -17,7 +17,7 @@ export async function GET(){
   prisma.farm.findMany({where:{tenantId:ctx.tenant.id},select:{id:true,name:true},orderBy:{name:"asc"}}),
  ]);
  const grants=await prisma.tenantFarmAccess.findMany({where:{tenantId:ctx.tenant.id},select:{userId:true,farmId:true}});
- return respond({members:members.map(m=>({...m,farms:grants.filter(g=>g.userId===m.userId).map(g=>g.farmId)})),invitations,farms});
+ return respond({currentUserId:ctx.user.id,members:members.map(m=>({...m,farms:grants.filter(g=>g.userId===m.userId).map(g=>g.farmId)})),invitations,farms});
 }
 export async function POST(request:Request){
  const ctx=await getCurrentTenant();
