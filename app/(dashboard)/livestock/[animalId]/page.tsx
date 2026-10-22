@@ -1,3 +1,4 @@
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { notFound } from "next/navigation";
 
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
@@ -22,7 +23,6 @@ const viewerRoles = [
   "TENANT_OWNER",
   "TENANT_ADMIN",
   "FARM_MANAGER",
-  "ACCOUNTING",
   "OPERATOR",
 ] as const;
 
@@ -53,6 +53,8 @@ export default async function AnimalDetailPage({
     notFound();
   }
 
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  if(grants&&!grants.includes(data.animal.farmId))notFound();
   const canManage = managementRoles.includes(tenantContext.membership.role);
 
   return (
