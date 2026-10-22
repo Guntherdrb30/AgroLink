@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { rolesEs } from "@/lib/i18n/labels";
 import { UserButton } from "@clerk/nextjs";
 import { TenantSwitcher } from "@/components/layout/tenant-switcher";
 
@@ -51,7 +52,7 @@ export function DashboardHeader({
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <div className="hidden max-w-52 text-right sm:block">
             <p className="truncate text-sm font-semibold text-[#28362d]">{userName}</p>
-            <p className="truncate text-xs text-[#7a847b]">{roleLabels[userRole] ?? userRole}</p>
+            <p className="truncate text-xs text-[#7a847b]">{rolesEs[userRole] ?? roleLabels[userRole] ?? "Sin rol"}</p>
           </div>
           <div className="flex size-11 items-center justify-center rounded-full border border-[#e3e9e2] bg-[#f7f8f5]" aria-label="Cuenta de usuario">
             <UserButton />
