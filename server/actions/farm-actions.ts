@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireRole } from "@/lib/auth/session";
+import { assertFarmScope } from "@/lib/permissions/assert-farm-scope";
 import { farmSchema } from "@/lib/validators/farm";
 import {
   createFarmForTenant,
@@ -21,7 +22,7 @@ function optionalUploadPath(formData: FormData, key: string): string | null {
 }
 
 export async function createFarmAction(formData: FormData): Promise<{ error: string } | void> {
-  const { user, tenantContext } = await requireRole({ tenant: [...allowedRoles] });
+  const { user, tenantContext } = await requireRole({ tenant: ["TENANT_OWNER", "TENANT_ADMIN"] });
   if (!tenantContext) redirect("/farms?error=tenant");
 
   const parsed = farmSchema.safeParse({
@@ -66,6 +67,7 @@ export async function updateFarmAction(formData: FormData): Promise<{ error: str
   });
   if (!parsed.success) return { error: "Revisa los datos de la finca." };
 
+  await assertFarmScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, farmId);
   try {
     await updateTenantFarm(tenantContext.tenant.id, farmId, parsed.data, {
       primaryImagePath: optionalUploadPath(formData, "primaryImagePath"),
