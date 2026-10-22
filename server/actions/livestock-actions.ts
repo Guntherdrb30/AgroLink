@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
+import { assertAnimalScope, assertFarmScope } from "@/lib/permissions/assert-farm-scope";
 import {
   animalEventSchema,
   animalSchema,
@@ -67,6 +68,7 @@ export async function createAnimalAction(formData: FormData) {
     redirect("/livestock?error=validation");
   }
 
+  await assertFarmScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.farmId);
   const animal = await createAnimalForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -121,6 +123,9 @@ export async function updateAnimalAction(formData: FormData) {
     redirect(`/livestock/${animalId}?error=validation`);
   }
 
+  const scope = { tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role };
+  await assertAnimalScope(scope, animalId);
+  await assertFarmScope(scope, parsed.data.farmId);
   await updateAnimalForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -177,6 +182,7 @@ export async function addAnimalEventAction(formData: FormData) {
     redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=event_validation`);
   }
 
+  await assertAnimalScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.animalId);
   await addAnimalEventForTenant(tenantContext.tenant.id, user.id, parsed.data);
   revalidatePath(`/livestock/${parsed.data.animalId}`);
 }
@@ -202,6 +208,7 @@ export async function addAnimalWeightAction(formData: FormData) {
     redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=weight_validation`);
   }
 
+  await assertAnimalScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.animalId);
   await addAnimalWeightRecordForTenant(tenantContext.tenant.id, user.id, parsed.data);
   revalidatePath("/livestock");
   revalidatePath(`/livestock/${parsed.data.animalId}`);
@@ -231,6 +238,7 @@ export async function addAnimalVaccinationAction(formData: FormData) {
     redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=vaccination_validation`);
   }
 
+  await assertAnimalScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.animalId);
   await addAnimalVaccinationForTenant(tenantContext.tenant.id, user.id, parsed.data);
   revalidatePath(`/livestock/${parsed.data.animalId}`);
 }
@@ -260,6 +268,7 @@ export async function addAnimalTreatmentAction(formData: FormData) {
     redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=treatment_validation`);
   }
 
+  await assertAnimalScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.animalId);
   await addAnimalTreatmentForTenant(tenantContext.tenant.id, user.id, parsed.data);
   revalidatePath(`/livestock/${parsed.data.animalId}`);
 }
@@ -284,7 +293,8 @@ export async function addReproductionRecordAction(formData: FormData) {
   });
   if (!parsed.success) redirect(`/livestock/${String(formData.get("animalId") ?? "")}?error=reproduction_validation`);
   try {
-    await registerReproductionEvent(tenantContext.tenant.id, user.id, parsed.data);
+    await assertAnimalScope({ tenantId: tenantContext.tenant.id, userId: user.id, role: tenantContext.membership.role }, parsed.data.animalId);
+  await registerReproductionEvent(tenantContext.tenant.id, user.id, parsed.data);
   } catch {
     redirect(`/livestock/${parsed.data.animalId}?error=reproduction_failed`);
   }
