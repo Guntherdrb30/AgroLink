@@ -212,6 +212,7 @@ model User {
   accounts                 Account[]
   sessions                 Session[]
   memberships              TenantMembership[]
+  farmAccesses             TenantFarmAccess[]
   accessAudits             AccessAudit[]
   auditLogs                AuditLog[]
   reviewedProfiles         VerificationProfile[]     @relation("VerificationReviewer")
@@ -237,6 +238,8 @@ model Tenant {
   isVerified           Boolean                   @default(false)
   defaultUsers         User[]                    @relation("DefaultTenant")
   memberships          TenantMembership[]
+  farmAccesses         TenantFarmAccess[]
+  invitations          TenantInvitation[]
   farms                Farm[]
   geoAreas             FarmGeoArea[]
   grazingPlans         FarmGrazingPlan[]
@@ -359,6 +362,7 @@ model Farm {
   livestockOperations LivestockOperation[]
   geoAreas            FarmGeoArea[]
   grazingPlans        FarmGrazingPlan[]
+  farmAccesses        TenantFarmAccess[]
   outgoingMovements   LivestockMovement[] @relation("MovementFromFarm")
   incomingMovements   LivestockMovement[] @relation("MovementToFarm")
   erpPartners         FarmErpPartner[]
@@ -988,4 +992,39 @@ model FarmErpPayroll {
   employee    Employee @relation(fields:[employeeId],references:[id],onDelete:Restrict)
   @@unique([farmId,employeeId,startAt,endAt,currency])
   @@index([tenantId,farmId,createdAt])
+}
+
+/**
+ * Farm scopes are assigned inside each tenant. Tenant owners and admins are
+ * intentionally global; all other roles require an explicit row for each farm.
+ */
+model TenantFarmAccess {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  farmId    String
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farm      Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, userId, farmId])
+  @@index([tenantId, farmId])
+}
+
+model TenantInvitation {
+  id          String   @id @default(cuid())
+  tenantId    String
+  email       String
+  role        TenantRole
+  farmIds     Json
+  tokenHash   String   @unique
+  status      String   @default("PENDING")
+  createdById String
+  acceptedById String?
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId, status, expiresAt])
+  @@index([tenantId, email])
 }
