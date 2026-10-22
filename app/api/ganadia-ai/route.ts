@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     return output({ kind: "finance", farms, records, note: "Movimientos registrados por moneda y clase; no equivale a utilidad ni saldo bancario." });
   }
   if (role === "ACCOUNTING") return output({ error: "Solo tienes acceso al area financiera" }, 403);
+  if (role === "VETERINARIAN" && !["sanidad", "ayuda", "fincas"].includes(topic)) return output({ error: "Acceso veterinario limitado a sanidad de sus fincas" }, 403);
   if (topic === "ayuda") return output({ kind: "help", farms, note: "El asistente ofrece consultas verificadas. La conversacion generativa de OpenAI y las acciones de escritura aun no estan activadas." });
   if (topic === "fincas") return output({ kind: "farms", farms });
   if (topic === "venta") {
