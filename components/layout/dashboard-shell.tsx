@@ -56,7 +56,7 @@ export function DashboardShell({
           {children}
         </main>
       </div>
-      <GanadiaAssistant financeOnly={tenantRole === "ACCOUNTING"} />
+      <GanadiaAssistant financeOnly={tenantRole === "ACCOUNTING"} veterinaryOnly={tenantRole === "VETERINARIAN"} />
     </div>
   );
 }
