@@ -214,6 +214,7 @@ model User {
   sessions                 Session[]
   memberships              TenantMembership[]
   farmAccesses             TenantFarmAccess[]
+  veterinaryProfiles       VeterinaryProfessionalProfile[]
   accessAudits             AccessAudit[]
   auditLogs                AuditLog[]
   reviewedProfiles         VerificationProfile[]     @relation("VerificationReviewer")
@@ -240,6 +241,7 @@ model Tenant {
   defaultUsers         User[]                    @relation("DefaultTenant")
   memberships          TenantMembership[]
   farmAccesses         TenantFarmAccess[]
+  veterinaryProfiles  VeterinaryProfessionalProfile[]
   invitations          TenantInvitation[]
   farms                Farm[]
   geoAreas             FarmGeoArea[]
@@ -570,6 +572,8 @@ model AnimalVaccinationRecord {
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   animal       Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
   recordedBy   User?     @relation("AnimalVaccinationRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  veterinaryProfileId String?
+  veterinaryProfile   VeterinaryProfessionalProfile? @relation("VaccinationVeterinarian", fields: [veterinaryProfileId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
 
   @@index([tenantId, animalId, appliedAt])
@@ -590,6 +594,8 @@ model AnimalTreatmentRecord {
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   animal          Animal    @relation(fields: [animalId], references: [id], onDelete: Cascade)
   recordedBy      User?     @relation("AnimalTreatmentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  veterinaryProfileId String?
+  veterinaryProfile   VeterinaryProfessionalProfile? @relation("TreatmentVeterinarian", fields: [veterinaryProfileId], references: [id], onDelete: SetNull)
   createdAt       DateTime  @default(now())
 
   @@index([tenantId, animalId, appliedAt])
@@ -1028,4 +1034,30 @@ model TenantInvitation {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@index([tenantId, status, expiresAt])
   @@index([tenantId, email])
+}
+
+/**
+ * Verified identity stays in Clerk; profile fields are declared by the user
+ * or company admin and are not automatically credential-verified.
+ * One professional may be assigned to multiple farms through TenantFarmAccess.
+ */
+model VeterinaryProfessionalProfile {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  userId                String
+  fullName              String
+  licenseNumber         String
+  registrationAuthority String?
+  specialty             String?
+  phone                 String?
+  updatedById           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaccinations          AnimalVaccinationRecord[] @relation("VaccinationVeterinarian")
+  treatments            AnimalTreatmentRecord[] @relation("TreatmentVeterinarian")
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, licenseNumber])
 }
