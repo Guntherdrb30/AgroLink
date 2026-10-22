@@ -6,6 +6,7 @@ import { sendVerificationNotification } from "@/server/services/notification-ema
 import { recordAccessAudit } from "@/server/services/access-audit-service";
 import { redirect } from "next/navigation";
 
+import { assertFarmScope } from "@/lib/permissions/assert-farm-scope";
 import { getCurrentTenant, requireAuth, requireRole } from "@/lib/auth/session";
 import { submitVerificationSchema, verificationReviewSchema } from "@/lib/validators/verification";
 import {
@@ -45,6 +46,7 @@ export async function uploadFarmVerificationDocumentsAction(formData: FormData) 
     redirect("/farms?error=missing_farm");
   }
 
+  await assertFarmScope({tenantId:tenantContext.tenant.id,userId:user.id,role:tenantContext.membership.role},farmId);
   await uploadFarmVerificationDocuments(tenantContext.tenant.id, farmId, user.id, formData);
 
   revalidatePath(`/farms/${farmId}`);
@@ -67,6 +69,16 @@ export async function submitVerificationProfileAction(formData: FormData) {
     redirect("/verification?error=profile");
   }
 
+  const target = await prisma.verificationProfile.findFirst({
+    where:{id:parsed.data.profileId,tenantId:tenantContext.tenant.id},
+    select:{subjectType:true,farmId:true},
+  });
+  if(!target)redirect("/verification?error=profile");
+  if(target.subjectType==="TENANT"&&!["TENANT_OWNER","TENANT_ADMIN"].includes(tenantContext.membership.role))redirect("/dashboard");
+  if(target.subjectType==="FARM"){
+    if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER"].includes(tenantContext.membership.role)||!target.farmId)redirect("/dashboard");
+    await assertFarmScope({tenantId:tenantContext.tenant.id,userId:user.id,role:tenantContext.membership.role},target.farmId);
+  }
   const profile = await submitVerificationProfile(tenantContext.tenant.id, parsed.data.profileId, user.id);
   await sendVerificationNotification({
     event: "submitted",
