@@ -1,3 +1,4 @@
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { findFarmById } from "@/server/repositories/farm-repository";
@@ -12,6 +13,7 @@ export default async function FarmGeographyPage({ params }: { params: Promise<{ 
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"],
   });
   if (!tenantContext) notFound();
+  const allowed=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);if(allowed&&!allowed.includes(farmId))notFound();
   const farm = await findFarmById(farmId);
   if (!farm || farm.tenantId !== tenantContext.tenant.id) notFound();
   const canEdit = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(tenantContext.membership.role);

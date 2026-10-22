@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCurrentTenant } from "@/lib/auth/session";
+import { requireFarmPermission } from "@/lib/permissions/farm-access";
 import { prisma } from "@/lib/db/prisma";
 import { Prisma } from "@prisma/client";
 export const dynamic="force-dynamic";
 type C={params:Promise<{farmId:string}>};
 const send=(x:unknown,status=200)=>NextResponse.json(x,{status,headers:{"Cache-Control":"private,no-store"}});
 async function scope(farmId:string){
- const c=await getCurrentTenant();if(!c)return null;
- const farm=await prisma.farm.findFirst({where:{id:farmId,tenantId:c.tenant.id},select:{id:true,name:true}});
- return farm?{c,farm}:null;
+ const allowed=await requireFarmPermission(farmId,"finance");
+ return allowed?{c:allowed.ctx,farm:allowed.farm}:null;
 }
 const text=(x:unknown,max=120)=>typeof x==="string"?x.trim().slice(0,max):"";
 const cents=(x:unknown)=>typeof x==="number"&&Number.isInteger(x)&&x>=0&&x<=1e9?x:null;
@@ -18,6 +17,10 @@ const qty=(n:unknown)=>typeof n==="number"&&Number.isFinite(n)&&n>0&&n<=10000000
 export async function GET(_:Request,{params}:C){
  const {farmId}=await params;const access=await scope(farmId);if(!access)return send({error:"Finca no disponible"},404);
  const tid=access.c.tenant.id,where={tenantId:tid,farmId};
+ if(access.c.membership.role==="ACCOUNTING"){
+  const finances=await prisma.farmErpFinance.findMany({where,orderBy:{occurredAt:"desc"},take:500});
+  return send({farm:access.farm,partners:[],items:[],stock:[],finances,staff:[],payrolls:[],employees:[]});
+ }
  const [partners,items,stock,finances,staff,payrolls,employees]=await Promise.all([
  prisma.farmErpPartner.findMany({where,orderBy:{name:"asc"},take:250}),
  prisma.farmErpItem.findMany({where,orderBy:{name:"asc"},take:500}),
@@ -31,7 +34,7 @@ export async function GET(_:Request,{params}:C){
 }
 export async function POST(request:Request,{params}:C){
  const {farmId}=await params;const access=await scope(farmId);if(!access)return send({error:"Finca no disponible"},404);
- if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER"].includes(access.c.membership.role))return send({error:"Sin permiso"},403);
+ if(!["TENANT_OWNER","TENANT_ADMIN"].includes(access.c.membership.role))return send({error:"Sin permiso"},403);
  const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)return send({error:"Origen inválido"},403);
  let body:Record<string,unknown>;
  try{const raw=await request.text();if(raw.length>18000)return send({error:"Solicitud extensa"},413);body=JSON.parse(raw);}

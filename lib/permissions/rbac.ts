@@ -5,6 +5,7 @@ export type TenantRole =
   | "TENANT_ADMIN"
   | "FARM_MANAGER"
   | "ACCOUNTING"
+  | "VETERINARIAN"
   | "OPERATOR";
 
 export const platformRolePriority: Record<PlatformRole, number> = {
@@ -17,6 +18,7 @@ export const tenantRolePriority: Record<TenantRole, number> = {
   TENANT_ADMIN: 80,
   FARM_MANAGER: 60,
   ACCOUNTING: 50,
+  VETERINARIAN: 45,
   OPERATOR: 20,
 };
 
@@ -38,6 +40,7 @@ export const tenantRolePermissions: Record<TenantRole, readonly string[]> = {
     "reports.view",
   ],
   ACCOUNTING: ["dashboard.view", "expenses.manage", "payroll.manage"],
+  VETERINARIAN: ["dashboard.view", "livestock.health.read", "livestock.health.record"],
   OPERATOR: ["dashboard.view", "fieldwork.manage", "livestock.manage"],
 };
 

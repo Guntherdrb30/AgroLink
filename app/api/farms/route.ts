@@ -9,7 +9,7 @@ import { createFarmForTenant } from "@/server/services/farm-service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const editorRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"] as const;
+const editorRoles = ["TENANT_OWNER", "TENANT_ADMIN"] as const;
 
 export async function POST(request: Request) {
   if (!isSameOriginFarmRequest(request)) {

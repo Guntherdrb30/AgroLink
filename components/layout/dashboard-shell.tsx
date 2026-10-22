@@ -1,3 +1,4 @@
+import { GanadiaAssistant } from "@/components/ai/ganadia-assistant";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 
@@ -55,6 +56,7 @@ export function DashboardShell({
           {children}
         </main>
       </div>
+      <GanadiaAssistant financeOnly={tenantRole === "ACCOUNTING"} veterinaryOnly={tenantRole === "VETERINARIAN"} />
     </div>
   );
 }

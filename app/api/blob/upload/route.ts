@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   if (!context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER"].includes(context.membership.role))return NextResponse.json({error:"Sin permiso para subir archivos"},{status:403});
 
   const formData = await request.formData();
   const file = formData.get("file");

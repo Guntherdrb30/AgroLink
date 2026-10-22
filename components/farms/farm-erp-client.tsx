@@ -9,8 +9,8 @@ const field="min-h-11 w-full min-w-0 rounded-xl border border-[#d8e2d6] bg-white
 const caption="block text-xs font-semibold text-[#566957]";
 const amt=(v:string)=>Math.round(Number(v)*100);
 function Field({label,value,onChange,placeholder,type="text"}:{label:string;value:string;onChange:(v:string)=>void;placeholder?:string;type?:string}){return <label className={caption}>{label}<input className={field+" mt-1"} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type}/></label>}
-export function FarmErpClient({farmId,canEdit}:{farmId:string;canEdit:boolean}){
- const [tab,setTab]=useState(0),[data,setData]=useState<Data|null>(null),[error,setError]=useState(""),[ok,setOk]=useState(""),[busy,setBusy]=useState(false);
+export function FarmErpClient({farmId,canEdit,financeOnly=false}:{farmId:string;canEdit:boolean;financeOnly?:boolean}){
+ const [tab,setTab]=useState(financeOnly?4:0),[data,setData]=useState<Data|null>(null),[error,setError]=useState(""),[ok,setOk]=useState(""),[busy,setBusy]=useState(false);
  const [name,setName]=useState(""),[kind,setKind]=useState("SUPPLIER"),[rif,setRif]=useState("");
  const [sku,setSku]=useState(""),[unit,setUnit]=useState("unidad"),[itemType,setItemType]=useState("SUPPLY"),[cost,setCost]=useState("");
  const [itemId,setItemId]=useState(""),[stockKind,setStockKind]=useState("RECEIPT"),[quantity,setQuantity]=useState("1"),[partner,setPartner]=useState("");
@@ -37,7 +37,7 @@ export function FarmErpClient({farmId,canEdit}:{farmId:string;canEdit:boolean}){
  return <div className="mx-auto max-w-6xl space-y-5 pb-8">
   <Link href={"/farms/"+encodeURIComponent(farmId)} className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#846942]"><ArrowLeft className="size-4"/> Volver a la finca</Link>
   <header className="rounded-[26px] bg-[#20402e] p-6 text-white"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#d6bc8a]">GanadIA · ERP Agropecuario</p><h1 className="mt-3 text-2xl font-extrabold sm:text-4xl">Administración de finca</h1><p className="mt-2 text-sm text-white/75">{data?.farm.name??"Cargando finca"} · Existencias, proveedores, compras, gastos y nómina preliminar.</p></header>
-  <div className="flex gap-2 overflow-x-auto pb-2">{sections.map(([label],i)=><button key={label} onClick={()=>setTab(i)} type="button" className={"min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold "+(tab===i?"bg-[#234a34] text-white":"border bg-white text-[#526a56]")}>{label}</button>)}</div>
+  <div className="flex gap-2 overflow-x-auto pb-2">{sections.map(([label],i)=>(!financeOnly||i===4)&&<button key={label} onClick={()=>setTab(i)} type="button" className={"min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold "+(tab===i?"bg-[#234a34] text-white":"border bg-white text-[#526a56]")}>{label}</button>)}</div>
   {error&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
   {ok&&<p role="status" className="rounded-xl bg-green-50 p-3 text-sm text-green-800">{ok}</p>}
   {!data?<p className="p-6 text-sm">Cargando registros administrativos...</p>:<section className="space-y-4 rounded-3xl border bg-white p-4 sm:p-6">

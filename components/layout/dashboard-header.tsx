@@ -21,6 +21,7 @@ const roleLabels: Record<string, string> = {
   TENANT_ADMIN: "Administrador",
   FARM_MANAGER: "Encargado de finca",
   ACCOUNTING: "Contabilidad",
+  VETERINARIAN: "Veterinario",
   OPERATOR: "Operador",
   NO_ROLE: "Sin rol",
 };

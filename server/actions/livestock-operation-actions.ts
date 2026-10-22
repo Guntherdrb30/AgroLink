@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
+import { assertFarmScope, assertOperationScope, assertOperationAnimalScope } from "@/lib/permissions/assert-farm-scope";
 import {
   livestockOperationSchema,
   operationAnimalResultSchema,
@@ -52,6 +53,7 @@ export async function createLivestockOperationAction(formData: FormData) {
     redirect("/operations?error=validation");
   }
 
+  await assertFarmScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, parsed.data.farmId);
   const operation = await createLivestockOperationForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -73,6 +75,7 @@ export async function generateOperationPdfSheetAction(formData: FormData) {
   }
 
   const operationId = String(formData.get("operationId") ?? "");
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, operationId);
   const file = await generateOperationPdfForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -95,6 +98,7 @@ export async function generateOperationExcelSheetAction(formData: FormData) {
   }
 
   const operationId = String(formData.get("operationId") ?? "");
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, operationId);
   const file = await generateOperationExcelForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -123,6 +127,7 @@ export async function importOperationExcelAction(formData: FormData) {
     redirect(`/operations/${operationId}?error=missing_file`);
   }
 
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, operationId);
   await importOperationExcelForTenant(
     tenantContext.tenant.id,
     user.id,
@@ -162,6 +167,7 @@ export async function saveOperationAnimalResultAction(formData: FormData) {
     redirect(`/operations/${operationId}?error=result_validation`);
   }
 
+  await assertOperationAnimalScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, operationId, parsed.data.operationAnimalId);
   await saveOperationAnimalResultForTenant(tenantContext.tenant.id, parsed.data);
   revalidatePath(`/operations/${operationId}`);
   redirect(
@@ -192,6 +198,7 @@ export async function addOperationExpenseAction(formData: FormData) {
     redirect(`/operations/${String(formData.get("operationId") ?? "")}?error=expense_validation`);
   }
 
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, parsed.data.operationId);
   await addOperationExpenseForTenant(tenantContext.tenant.id, parsed.data);
   revalidatePath(`/operations/${parsed.data.operationId}`);
 }
@@ -218,6 +225,7 @@ export async function addOperationWorkerAction(formData: FormData) {
     redirect(`/operations/${String(formData.get("operationId") ?? "")}?error=worker_validation`);
   }
 
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, parsed.data.operationId);
   await addOperationWorkerForTenant(tenantContext.tenant.id, parsed.data);
   revalidatePath(`/operations/${parsed.data.operationId}`);
 }
@@ -233,6 +241,7 @@ export async function applyOperationResultsAction(formData: FormData) {
   }
 
   const operationId = String(formData.get("operationId") ?? "");
+  await assertOperationScope({ tenantId: tenantContext.tenant.id, userId: tenantContext.user.id, role: tenantContext.membership.role }, operationId);
   await applyOperationResultsForTenant(tenantContext.tenant.id, user.id, operationId);
   revalidatePath("/operations");
   revalidatePath(`/operations/${operationId}`);

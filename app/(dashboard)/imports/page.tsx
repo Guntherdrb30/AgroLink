@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { listFarmsByTenant } from "@/server/repositories/farm-repository";
 import { LivestockImportPreview } from "@/components/imports/livestock-import-preview";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,7 +11,8 @@ export default async function LivestockImportsPage() {
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"],
   });
   if (!tenantContext) return null;
-  const farms = await listFarmsByTenant(tenantContext.tenant.id);
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const farms = (await listFarmsByTenant(tenantContext.tenant.id)).filter(f=>!grants||grants.includes(f.id));
   return (
     <div className="space-y-8">
       <PageHeader

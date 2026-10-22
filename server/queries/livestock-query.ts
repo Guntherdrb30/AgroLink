@@ -29,13 +29,17 @@ function toTimelineDate(date: Date) {
   return date.toISOString();
 }
 
-export async function getLivestockIndexData(tenantId: string) {
-  const [animals, farms, relationAnimals] = await Promise.all([
+export async function getLivestockIndexData(tenantId: string, granted: string[] | null = null) {
+  const [allAnimals, allFarms, allRelationAnimals] = await Promise.all([
     listAnimalsByTenant(tenantId),
     listFarmsByTenant(tenantId),
     listAnimalsForRelations(tenantId),
   ]);
 
+  const animals=allAnimals.filter(a=>!granted||granted.includes(a.farmId));
+  const farms=allFarms.filter(f=>!granted||granted.includes(f.id));
+  const permittedAnimalIds=new Set(animals.map(a=>a.id));
+  const relationAnimals=allRelationAnimals.filter(a=>permittedAnimalIds.has(a.id));
   const files = await listFilesForEntities(
     "animal",
     animals.map((animal) => animal.id),
@@ -76,7 +80,7 @@ export async function getLivestockIndexData(tenantId: string) {
       origin: animal.origin,
       photoUrl: firstPhotoByAnimalId.get(animal.id) ?? null,
     })),
-    farms: farms.map((farm) => ({
+    farms: farms.filter(f=>!granted||granted.includes(f.id)).map((farm) => ({
       id: farm.id,
       name: farm.name,
     })),
@@ -89,7 +93,7 @@ export async function getLivestockIndexData(tenantId: string) {
   };
 }
 
-export async function getAnimalDetailData(tenantId: string, animalId: string) {
+export async function getAnimalDetailData(tenantId: string, animalId: string, granted: string[] | null = null) {
   const [animal, farms, relationAnimals, photos] = await Promise.all([
     findAnimalById(animalId),
     listFarmsByTenant(tenantId),
@@ -97,12 +101,12 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
     listFilesByEntity("animal", animalId),
   ]);
 
-  if (!animal || animal.tenantId !== tenantId) {
+  if (!animal || animal.tenantId !== tenantId || (granted&&!granted.includes(animal.farmId))) {
     return null;
   }
 
   const sires = await (await import("@/lib/db/prisma")).prisma.animal.findMany({
-    where: { tenantId, speciesId: animal.speciesId, sex: "MALE", id: { not: animal.id } },
+    where: { tenantId, speciesId: animal.speciesId, sex: "MALE", id: { not: animal.id }, ...(granted?{farmId:{in:granted}}:{}) },
     select: { id: true, internalCode: true, visualIdentification: true }, orderBy: { internalCode: "asc" },
   });
   const reproductionHistory: ReproductionRecord[] = animal.events.filter(event => isReproductionMetadata(event.metadata)).map(event => ({
@@ -165,8 +169,8 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
       farmName: animal.farm.name,
       lotOrZone: animal.lotOrZone,
       productiveLine: animal.productiveLine as AnimalProductiveLine,
-      fatherId: animal.fatherId ?? "",
-      motherId: animal.motherId ?? "",
+      fatherId: animal.father && granted && !granted.includes(animal.father.farmId) ? "" : animal.fatherId ?? "",
+      motherId: animal.mother && granted && !granted.includes(animal.mother.farmId) ? "" : animal.motherId ?? "",
       initialWeightKg: decimalToString(animal.initialWeightKg) ?? "",
       currentWeightKg: decimalToString(animal.currentWeightKg) ?? "",
       healthStatus: animal.healthStatus as AnimalHealthStatus,
@@ -184,7 +188,7 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
       mimeType: photo.mimeType,
     })),
     parents: {
-      father: animal.father
+      father: animal.father && (!granted || granted.includes(animal.father.farmId))
         ? {
             id: animal.father.id,
             internalCode: animal.father.internalCode,
@@ -194,7 +198,7 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
             farmName: animal.father.farm.name,
           }
         : null,
-      mother: animal.mother
+      mother: animal.mother && (!granted || granted.includes(animal.mother.farmId))
         ? {
             id: animal.mother.id,
             internalCode: animal.mother.internalCode,
@@ -242,7 +246,7 @@ export async function getAnimalDetailData(tenantId: string, animalId: string) {
         id: farm.id,
         name: farm.name,
       })),
-      relationAnimals: relationAnimals.map((relationAnimal) => ({
+      relationAnimals: relationAnimals.filter(a=>!granted||granted.includes(a.farmId)).map((relationAnimal) => ({
         id: relationAnimal.id,
         label: relationAnimal.visualIdentification
           ? `${relationAnimal.internalCode} - ${relationAnimal.visualIdentification}`

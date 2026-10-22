@@ -1,3 +1,4 @@
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -40,6 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ fa
   }
 
   const { farmId } = await params;
+  const allowed=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);if(allowed&&!allowed.includes(farmId))return NextResponse.json({error:"Finca no autorizada"},{status:403,headers:farmNoStoreHeaders});
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(farmId)) {
     return NextResponse.json({ error: "Identificador de finca no válido." }, {
       status: 400, headers: farmNoStoreHeaders,

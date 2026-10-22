@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { notFound } from "next/navigation";
 
 import {
@@ -24,7 +25,6 @@ const viewerRoles = [
   "TENANT_OWNER",
   "TENANT_ADMIN",
   "FARM_MANAGER",
-  "ACCOUNTING",
   "OPERATOR",
 ] as const;
 
@@ -65,6 +65,8 @@ export default async function OperationDetailPage({
     notFound();
   }
 
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  if(grants&&!grants.includes(data.operation.farmId))notFound();
   const canManage = managementRoles.includes(tenantContext.membership.role);
   const canAdmin = adminRoles.includes(tenantContext.membership.role);
   const editable = !["APPLIED", "CANCELLED"].includes(data.operation.status);

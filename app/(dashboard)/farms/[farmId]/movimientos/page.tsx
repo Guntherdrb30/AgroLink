@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { getCurrentTenant } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { LivestockMovementsClient } from "@/components/farms/livestock-movements-client";
 export const dynamic="force-dynamic";
 export default async function FarmMovementsPage({params}:{params:Promise<{farmId:string}>}){
- const {farmId}=await params;const context=await getCurrentTenant();if(!context)notFound();
+ const {farmId}=await params;const context=await getCurrentTenant();if(!context||!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","OPERATOR"].includes(context.membership.role))notFound();const allowed=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);if(allowed&&!allowed.includes(farmId))notFound();
  const farm=await prisma.farm.findFirst({where:{id:farmId,tenantId:context.tenant.id},select:{id:true,name:true}});
  if(!farm)notFound();
  return <LivestockMovementsClient farmId={farmId} farmName={farm.name}

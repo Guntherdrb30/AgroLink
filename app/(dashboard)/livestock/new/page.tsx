@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Beef, Sprout } from "lucide-react";
 
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { requireOperationalTenant, requireRole } from "@/lib/auth/session";
 import { AnimalForm } from "@/components/livestock/animal-form";
 import { listFarmsByTenant } from "@/server/repositories/farm-repository";
@@ -23,6 +24,8 @@ export default async function NewAnimalPage({
     listFarmsByTenant(tenantContext.tenant.id),
     listAnimalsForRelations(tenantContext.tenant.id),
   ]);
+  const granted=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const scopedFarms=farms.filter(f=>!granted||granted.includes(f.id));
   const { error } = await searchParams;
 
   return (
@@ -37,7 +40,7 @@ export default async function NewAnimalPage({
           Completa una ficha de identidad, selecciona la finca y registra su información operativa. Las fotografías son opcionales.
         </p>
       </div>
-      {farms.length === 0 ? (
+      {scopedFarms.length === 0 ? (
         <div className="rounded-[25px] border border-[#e1e8dd] bg-white p-6 sm:p-9">
           <Sprout className="size-9 text-[#987642]" aria-hidden={true}/>
           <h2 className="mt-4 text-xl font-bold text-[#223a2a]">Necesitas una finca</h2>
@@ -62,8 +65,8 @@ export default async function NewAnimalPage({
           ) : null}
           <AnimalForm
             mode="create"
-            farms={farms.map((farm) => ({ id: farm.id, name: farm.name }))}
-            relationAnimals={animals.map((animal) => ({
+            farms={scopedFarms.map((farm) => ({ id: farm.id, name: farm.name }))}
+            relationAnimals={animals.filter(a=>!granted||granted.includes(a.farmId)).map((animal) => ({
               id: animal.id,
               label: animal.visualIdentification
                 ? `${animal.internalCode} - ${animal.visualIdentification}`
