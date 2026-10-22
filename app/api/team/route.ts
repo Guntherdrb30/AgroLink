@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 const respond=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{"Cache-Control":"private,no-store"}});
-const scopedRoles=["FARM_MANAGER","ACCOUNTING","OPERATOR"] as const;
+const scopedRoles=["FARM_MANAGER","ACCOUNTING","VETERINARIAN","OPERATOR"] as const;
 const assignableRoles=[...scopedRoles,"TENANT_ADMIN"] as const;
 
 export async function GET(){
