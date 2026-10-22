@@ -1,5 +1,5 @@
-import { financeEs, stockEs, supplierEs, statusEs } from "@/lib/i18n/labels";
 "use client";
+import { financeEs, stockEs, supplierEs, statusEs } from "@/lib/i18n/labels";
 import {useCallback,useEffect,useState} from "react";
 import Link from "next/link";
 import {ArrowLeft,Boxes,Building2,ClipboardList,Landmark,Tractor,Users,Wallet} from "lucide-react";
