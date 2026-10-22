@@ -1,5 +1,5 @@
-import { rolesEs, invitationEs } from "@/lib/i18n/labels";
 "use client";
+import { rolesEs, invitationEs } from "@/lib/i18n/labels";
 import { useEffect,useState } from "react";
 type Farm={id:string;name:string};
 type Member={userId:string;role:string;user:{email:string;name:string|null};farms:string[]};
