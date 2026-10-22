@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import { VeterinaryClinicalForm } from "@/components/veterinary/veterinary-clinical-form";
 type Farm={id:string;name:string};
 type Animal={id:string;internalCode:string;visualIdentification:string|null;healthStatus:string;reproductiveStatus:string;chipCode:string|null;sex:string;vaccinationRecords:{id:string;vaccineName:string;appliedAt:string;nextDueAt:string|null;note:string|null}[];treatmentRecords:{id:string;treatmentName:string;appliedAt:string;diagnosis:string|null;withdrawalUntil:string|null}[]};
-export function VeterinaryWorkspace({farms}:{farms:Farm[]}){
+export function VeterinaryWorkspace({farms,canRecord=false}:{farms:Farm[];canRecord?:boolean}){
  const [selected,setSelected]=useState("");const [animals,setAnimals]=useState<Animal[]>([]);const [loading,setLoading]=useState(false);const [error,setError]=useState("");
  async function load(id:string){setSelected(id);setAnimals([]);setError("");if(!id)return;setLoading(true);try{const r=await fetch("/api/veterinaria?farmId="+encodeURIComponent(id),{cache:"no-store"});const data=await r.json();if(!r.ok)throw Error(data.error||"No autorizado");setAnimals(data.animals)}catch(e){setError(e instanceof Error?e.message:"Error de consulta")}finally{setLoading(false)}}
  return <div className="mx-auto max-w-5xl space-y-5">
@@ -12,6 +13,7 @@ export function VeterinaryWorkspace({farms}:{farms:Farm[]}){
   {loading&&<p>Consultando registros sanitarios…</p>}
   {!farms.length&&<p className="rounded-xl border bg-white p-4">Aún no tienes fincas asignadas.</p>}
   {selected&&!loading&&<p className="text-sm font-medium">{animals.length} animales recuperados (máximo 500 por consulta).</p>}
+  {selected&&canRecord&&<VeterinaryClinicalForm key={selected} farmId={selected} animals={animals} onSaved={async()=>{await load(selected)}}/>}
   <div className="grid gap-3 sm:grid-cols-2">{animals.map(a=><article key={a.id} className="space-y-2 rounded-2xl border bg-white p-4">
    <h2 className="font-bold">{a.internalCode} {a.visualIdentification?"· "+a.visualIdentification:""}</h2><p className="text-sm">Sanidad: {a.healthStatus} · Reproducción: {a.reproductiveStatus}</p>
    <p className="text-xs">Identificación electrónica: {a.chipCode||"No registrada"}</p>
@@ -20,6 +22,6 @@ export function VeterinaryWorkspace({farms}:{farms:Farm[]}){
    <h3 className="text-sm font-bold">Tratamientos recientes</h3>
    {a.treatmentRecords.length?a.treatmentRecords.map(t=><p key={t.id} className="text-xs">{t.treatmentName} · {new Date(t.appliedAt).toLocaleDateString("es-VE")}</p>):<p className="text-xs text-[#718074]">Sin tratamientos registrados</p>}
   </article>)}</div>
-  <p className="text-xs text-[#768679]">Área inicialmente de consulta. Los registros clínicos editables requerirán permisos y auditoría específicos antes de habilitarse.</p>
+  <p className="text-xs text-[#768679]">Las atenciones nuevas se registran con identidad profesional, finca autorizada y auditoría. Los registros existentes permanecen intactos.</p>
  </div>
 }
