@@ -17,9 +17,9 @@ export async function requireFarmPermission(farmId: string, section: "livestock"
   if (!ctx) return null;
   const role = ctx.membership.role;
   if (section === "finance" && !["TENANT_OWNER", "TENANT_ADMIN", "ACCOUNTING"].includes(role)) return null;
-  if (section === "livestock" && !["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"].includes(role)) return null;
+  if (section === "livestock" && !["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "VETERINARIAN", "OPERATOR"].includes(role)) return null;
   if (write && role === "ACCOUNTING") return null;
-  if (write && section === "livestock" && role === "OPERATOR") return null;
+  if (write && section === "livestock" && ["OPERATOR", "VETERINARIAN"].includes(role)) return null;
   const access = await allowedFarmIds(ctx.tenant.id, ctx.user.id, role);
   if (access && !access.includes(farmId)) return null;
   const farm = await prisma.farm.findFirst({ where: { id: farmId, tenantId: ctx.tenant.id }, select: { id: true, name: true } });
