@@ -1,5 +1,6 @@
 import { get } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { prisma } from "@/lib/db/prisma";
 import { canReadPrivateFile } from "@/lib/blob/private-file-access";
 
@@ -31,7 +32,7 @@ export async function GET(
     where: { id: fileId },
     include: {
       verificationDocuments: {
-        select: { tenantId: true, profileId: true },
+        select: { tenantId: true, profileId: true, farmId: true },
         take: 2,
       },
     },
@@ -50,6 +51,13 @@ export async function GET(
     !canReadPrivateFile(file, currentUser)
   ) return blocked(404);
 
+  const member=currentUser.memberships.find(m=>m.tenantId===file.tenantId);
+  if(member?.role==="FARM_MANAGER"){
+    const farmId=file.verificationDocuments[0].farmId;
+    if(!farmId)return blocked(404);
+    const granted=await allowedFarmIds(file.tenantId,currentUser.id,member.role);
+    if(granted&&!granted.includes(farmId))return blocked(404);
+  }
   try {
     const blob = await get(file.path, {
       access: "private",
