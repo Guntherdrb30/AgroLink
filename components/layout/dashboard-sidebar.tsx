@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Users,
   Wallet,
+  Stethoscope,
   Sprout,
   X,
 } from "lucide-react";
@@ -49,7 +50,7 @@ export function DashboardSidebar({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const canImport = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(tenantRole);
   const canReview = ["ROOT", "PLATFORM_ADMIN"].includes(platformRole ?? "");
-  const primary = tenantRole === "ACCOUNTING" ? [{ href: "/dashboard", label: "Inicio", icon: LayoutDashboard }, { href: "/finanzas", label: "Finanzas", icon: Wallet }] : primaryItems;
+  const primary = tenantRole === "VETERINARIAN" ? [{ href: "/dashboard", label: "Inicio", icon: LayoutDashboard }, { href: "/veterinaria", label: "Sanidad", icon: Stethoscope }] : tenantRole === "ACCOUNTING" ? [{ href: "/dashboard", label: "Inicio", icon: LayoutDashboard }, { href: "/finanzas", label: "Finanzas", icon: Wallet }] : primaryItems;
   const secondary = [
     ...(["TENANT_OWNER", "TENANT_ADMIN"].includes(tenantRole) ? [{ href: "/equipo", label: "Equipo y accesos", icon: Users }] : []),
     ...(canImport ? [{ href: "/imports", label: "Importar Excel", icon: FileSpreadsheet }] : []),
