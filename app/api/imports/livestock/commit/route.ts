@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentTenant } from "@/lib/auth/session";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { MAX_PREVIEW_BYTES, IMPORT_FIELDS, type MappingOverrides } from "@/lib/imports/livestock-preview";
 import { commitLivestockImport } from "@/server/services/livestock-import-commit";
 
@@ -39,6 +40,8 @@ export async function POST(request: Request) {
       }
       mapping = object as MappingOverrides;
     }
+    const granted=await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);
+    if(granted&&!granted.includes(farmId))return NextResponse.json({error:"FARM_ACCESS_DENIED"},{status:403,headers});
     const result = await commitLivestockImport({ tenantId: context.tenant.id, actorUserId: context.user.id,
       farmId, bytes: new Uint8Array(await file.arrayBuffer()), filename: file.name, mapping });
     return NextResponse.json({ status: "IMPORTED", ...result }, { headers });
