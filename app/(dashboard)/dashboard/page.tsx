@@ -4,6 +4,7 @@ import { ArrowRight, Beef, BrainCircuit, ClipboardList, FileSpreadsheet, LandPlo
 import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { getCurrentTenant, getCurrentTenantVerification } from "@/lib/auth/session";
 import { getDashboardSnapshot } from "@/server/queries/dashboard-query";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { prisma } from "@/lib/db/prisma";
 import { VerificationGate } from "@/components/dashboard/verification-gate";
 
@@ -12,11 +13,12 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const context = await getCurrentTenant();
   if (!context) redirect("/onboarding");
+  const permittedIds = await allowedFarmIds(context.tenant.id,context.user.id,context.membership.role);
   const [snapshot, verification, farmShortcuts] = await Promise.all([
-    getDashboardSnapshot(context.tenant.id),
+    getDashboardSnapshot(context.tenant.id,permittedIds),
     getCurrentTenantVerification(),
     prisma.farm.findMany({
-      where: { tenantId: context.tenant.id },
+      where: { tenantId: context.tenant.id, ...(permittedIds ? {id:{in:permittedIds}} : {}) },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
       take: 30,
@@ -30,9 +32,9 @@ export default async function DashboardPage() {
   const firstName = (context.user.name || "").trim().split(/\s+/)[0] || "bienvenido";
   const cards = [
     ...(farmReadable ? [{ title: "Fincas", amount: snapshot.farmsCount, hint: "Registradas", href: "/farms?new=1", Icon: LandPlot }] : []),
-    { title: "Ganado", amount: snapshot.animalsCount, hint: "Animales registrados", href: "/livestock", Icon: Beef },
-    { title: "Jornadas", amount: snapshot.operationsCount, hint: "Jornadas de campo", href: "/operations", Icon: ClipboardList },
-    { title: "Publicaciones", amount: snapshot.listingsCount, hint: "Registros comerciales", href: null, Icon: Sprout },
+    ...(farmReadable ? [{ title: "Ganado", amount: snapshot.animalsCount, hint: "Animales registrados", href: "/livestock", Icon: Beef }] : []),
+    ...(farmReadable ? [{ title: "Jornadas", amount: snapshot.operationsCount, hint: "Jornadas de campo", href: "/operations", Icon: ClipboardList }] : []),
+    ...(farmReadable ? [{ title: "Publicaciones", amount: snapshot.listingsCount, hint: "Registros comerciales", href: null, Icon: Sprout }] : []),
   ];
   const actions = [
     ...(canManageFarms ? [{ label: "Gestionar fincas", detail: "Crear y actualizar los datos de tus fincas", href: "/farms", Icon: LandPlot }] : []),
@@ -70,7 +72,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {canOperate && farmShortcuts.length > 0 && (
+      {(canOperate || role==="ACCOUNTING") && farmShortcuts.length > 0 && (
         <section className="space-y-4" aria-labelledby="ganadia-farm-tools-title">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#997943]">Administración por finca</p>
@@ -87,11 +89,11 @@ export default async function DashboardPage() {
                     <span className="min-w-0 flex-1">ERP administrativo</span>
                     <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
                   </Link>
-                  <Link href={`/farms/${encodeURIComponent(farm.id)}/geografia/asesor`} className="flex min-h-12 items-center gap-3 rounded-xl border border-[#d9e3d7] bg-[#f3f7f1] px-4 text-sm font-semibold text-[#284432] transition-colors hover:bg-[#e6efe2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
+                  {role!=="ACCOUNTING" && <Link href={`/farms/${encodeURIComponent(farm.id)}/geografia/asesor` className="flex min-h-12 items-center gap-3 rounded-xl border border-[#d9e3d7] bg-[#f3f7f1] px-4 text-sm font-semibold text-[#284432] transition-colors hover:bg-[#e6efe2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9b773f]">
                     <BrainCircuit className="size-5 shrink-0" aria-hidden={true}/>
                     <span className="min-w-0 flex-1">Asesor de fundaciones y pastoreo</span>
                     <ArrowRight className="size-4 shrink-0" aria-hidden={true}/>
-                  </Link>
+                  </Link>}
                 </div>
               </article>
             ))}
