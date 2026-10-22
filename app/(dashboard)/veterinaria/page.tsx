@@ -10,5 +10,5 @@ export default async function VeterinaryPage() {
  if (!ctx||!["TENANT_OWNER","TENANT_ADMIN","VETERINARIAN"].includes(ctx.membership.role))notFound();
  const granted=await allowedFarmIds(ctx.tenant.id,ctx.user.id,ctx.membership.role);
  const farms=await prisma.farm.findMany({where:{tenantId:ctx.tenant.id,...(granted?{id:{in:granted}}:{})},select:{id:true,name:true},orderBy:{name:"asc"}});
- return <div className="space-y-5">{ctx.membership.role==="VETERINARIAN"&&<VeterinaryProfileForm userId={ctx.user.id}/>}<VeterinaryWorkspace farms={farms}/></div>;
+ return <div className="space-y-5">{ctx.membership.role==="VETERINARIAN"&&<VeterinaryProfileForm userId={ctx.user.id}/>}<VeterinaryWorkspace farms={farms} canRecord={ctx.membership.role==="VETERINARIAN"}/></div>;
 }
