@@ -16,7 +16,7 @@ import { getLivestockIndexData } from "@/server/queries/livestock-query";
 
 export const dynamic = "force-dynamic";
 
-const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "ACCOUNTING", "OPERATOR"] as const;
+const viewerRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"] as const;
 const managementRoles = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"];
 
 export default async function LivestockPage({
