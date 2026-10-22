@@ -24,6 +24,7 @@ export async function POST(request:Request,{params}:Context){
  const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)return out({error:"Origen inválido"},403);
  let input:MoveInput;try{const raw=await request.text();if(raw.length>30000)return out({error:"Petición excesiva"},413);input=JSON.parse(raw)}catch{return out({error:"Datos inválidos"},400)}
  if(input.fromFarmId!==farmId)return out({error:"Finca de origen inválida"},400);
+ if(allowed&&!allowed.includes(input.toFarmId))return out({error:"Destino no autorizado"},403);
  try{const result=await recordLivestockMove(current.tenant.id,current.user.id,input);return out(result,result.duplicate?200:201)}
  catch(error){
   const msg=error instanceof Error?error.message:"Error desconocido";
