@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { requireRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { GrazingAdvisor } from "@/components/geography/grazing-advisor";
@@ -11,9 +12,11 @@ export default async function FarmGrazingAdvisorPage({
 }: { params: Promise<{ farmId: string }> }) {
   const { farmId } = await params;
   const { tenantContext } = await requireRole({
-    tenant: ["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","OPERATOR","ACCOUNTING"],
+    tenant: ["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","OPERATOR"],
   });
   if (!tenantContext) notFound();
+  const grants=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  if(grants&&!grants.includes(farmId))notFound();
   const farm = await prisma.farm.findFirst({
     where: { id: farmId, tenantId: tenantContext.tenant.id },
     select: { id: true, name: true, hectares: true, latitude: true, longitude: true },
