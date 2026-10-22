@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Sprout } from "lucide-react";
+import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { listFarmsByTenant } from "@/server/repositories/farm-repository";
 import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
 import { requireRole } from "@/lib/auth/session";
@@ -17,8 +18,9 @@ export default async function FarmsPage({
     tenant: ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER", "OPERATOR"],
   });
   if (!tenantContext) return null;
-  const farms = await listFarmsByTenant(tenantContext.tenant.id);
-  const canEdit = ["TENANT_OWNER", "TENANT_ADMIN", "FARM_MANAGER"].includes(tenantContext.membership.role);
+  const granted=await allowedFarmIds(tenantContext.tenant.id,tenantContext.user.id,tenantContext.membership.role);
+  const farms = (await listFarmsByTenant(tenantContext.tenant.id)).filter(f=>!granted||granted.includes(f.id));
+  const canEdit = ["TENANT_OWNER", "TENANT_ADMIN"].includes(tenantContext.membership.role);
   const verificationRequired = isBusinessVerificationRequired();
   const { new: newParam } = await searchParams;
   const showForm = canEdit && (farms.length === 0 || newParam === "1");
