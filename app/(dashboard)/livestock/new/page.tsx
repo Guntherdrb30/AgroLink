@@ -66,7 +66,7 @@ export default async function NewAnimalPage({
           <AnimalForm
             mode="create"
             farms={scopedFarms.map((farm) => ({ id: farm.id, name: farm.name }))}
-            relationAnimals={animals.map((animal) => ({
+            relationAnimals={animals.filter(a=>!granted||granted.includes(a.farmId)).map((animal) => ({
               id: animal.id,
               label: animal.visualIdentification
                 ? `${animal.internalCode} - ${animal.visualIdentification}`
