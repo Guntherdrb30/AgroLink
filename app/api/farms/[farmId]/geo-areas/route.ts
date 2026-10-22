@@ -16,7 +16,7 @@ const reply = (data: unknown, status = 200) =>
 
 async function permittedFarm(farmId: string) {
   const current = await getCurrentTenant();
-  if (!current) return null;
+  if (!current || !["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","OPERATOR"].includes(current.membership.role)) return null;
   const allowed=await allowedFarmIds(current.tenant.id,current.user.id,current.membership.role);if(allowed&&!allowed.includes(farmId))return null;
   const farm = await prisma.farm.findFirst({
     where: { id: farmId, tenantId: current.tenant.id }, select: { id: true },
