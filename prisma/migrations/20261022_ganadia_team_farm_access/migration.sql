@@ -1,3 +1,4 @@
+ALTER TYPE "TenantRole" ADD VALUE IF NOT EXISTS 'VETERINARIAN';
 CREATE TABLE IF NOT EXISTS "TenantFarmAccess" ("id" TEXT PRIMARY KEY, "tenantId" TEXT NOT NULL REFERENCES "Tenant"("id") ON DELETE CASCADE, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE, "farmId" TEXT NOT NULL REFERENCES "Farm"("id") ON DELETE CASCADE, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE UNIQUE INDEX IF NOT EXISTS "TenantFarmAccess_tenantId_userId_farmId_key" ON "TenantFarmAccess"("tenantId","userId","farmId");
 CREATE INDEX IF NOT EXISTS "TenantFarmAccess_tenantId_farmId_idx" ON "TenantFarmAccess"("tenantId","farmId");
