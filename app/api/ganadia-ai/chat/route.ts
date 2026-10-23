@@ -1,44 +1,105 @@
 import { NextResponse } from "next/server";
-import { makeAiContext,runAiTool } from "@/lib/ai/ganadia-tools";
-import { isAuthorizedAiTool,type AiToolName, isPaidAiEnabled } from "@/lib/ai/ganadia-policy";
-export const dynamic="force-dynamic";
-export const runtime="nodejs";
-const send=(value:unknown,status=200)=>NextResponse.json(value,{status,headers:{"Cache-Control":"private, no-store"}});
-const topics:Record<string,AiToolName>={fincas:"listar_fincas",ganado:"resumen_ganado",sanidad:"resumen_sanidad",finanzas:"resumen_finanzas",venta:"preseleccionar_venta"};
-function resolve(message:string,role:string):AiToolName|null{
- const m=message.toLocaleLowerCase("es-VE");
- if(/(vender|venta|precio de venta|listos para vender)/.test(m))return "preseleccionar_venta";
- if(/(cu[aá]ntas fincas|mis fincas|lista de fincas|qu[eé] fincas)/.test(m))return "listar_fincas";
- if(/(gastos|ingresos|finanzas|cuentas por cobrar|cuentas por pagar|balance|deudas|facturaci[oó]n)/.test(m))return "resumen_finanzas";
- if(/(vacunas|vacunaci[oó]n|sanidad|enferm|salud|tratamientos|veterinari)/.test(m))return "resumen_sanidad";
- if(/(ganado|animales|peso|inventario|reses|cabezas)/.test(m))return "resumen_ganado";
- if(role==="ACCOUNTING")return "resumen_finanzas";
- if(role==="VETERINARIAN")return "resumen_sanidad";
- return null;
+import { makeAiContext, runAiTool } from "@/lib/ai/ganadia-tools";
+import {
+  allowedAiTools, isAuthorizedAiTool, isPaidAiEnabled,
+  scopeFarmIds, type AiToolName,
+} from "@/lib/ai/ganadia-policy";
+import { converseGanadia } from "@/lib/ai/ganadia-openai-core";
+import { invokeGanadiaPilotedOpenAI } from "@/lib/ai/ganadia-openai";
+import { GanadiaPilotBudgetError } from "@/lib/ai/ganadia-budget";
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+const send = (value: unknown, status = 200) =>
+  NextResponse.json(value, { status, headers: { "Cache-Control": "private, no-store" } });
+const topics: Record<string, AiToolName> = {
+  fincas: "listar_fincas", ganado: "resumen_ganado", sanidad: "resumen_sanidad",
+  finanzas: "resumen_finanzas", venta: "preseleccionar_venta",
+};
+function resolve(message: string, role: string): AiToolName | null {
+  const m = message.toLocaleLowerCase("es-VE");
+  if (/(vender|venta|precio de venta|listos para vender)/.test(m)) return "preseleccionar_venta";
+  if (/(cu[aá]ntas fincas|mis fincas|lista de fincas|qu[eé] fincas)/.test(m)) return "listar_fincas";
+  if (/(gastos|ingresos|finanzas|cuentas por cobrar|cuentas por pagar|balance|deudas|facturaci[oó]n)/.test(m)) return "resumen_finanzas";
+  if (/(vacunas|vacunaci[oó]n|sanidad|enferm|salud|tratamientos|veterinari)/.test(m)) return "resumen_sanidad";
+  if (/(ganado|animales|peso|inventario|reses|cabezas)/.test(m)) return "resumen_ganado";
+  if (role === "ACCOUNTING") return "resumen_finanzas";
+  if (role === "VETERINARIAN") return "resumen_sanidad";
+  return null;
 }
-export async function POST(request:Request){
- const ctx=await makeAiContext();
- if(!ctx)return send({error:"Necesitas iniciar sesión y pertenecer a una empresa."},401);
- const origin=request.headers.get("origin");
- if(origin&&origin!==new URL(request.url).origin)return send({error:"Origen no autorizado"},403);
- if(!request.headers.get("content-type")?.startsWith("application/json"))return send({error:"Formato no admitido"},415);
- const raw=await request.text();if(raw.length>5000)return send({error:"Consulta demasiado larga"},413);
- let body:{message?:unknown;topic?:unknown;farmId?:unknown;minWeightKg?:unknown};
- try{body=JSON.parse(raw)}catch{return send({error:"Solicitud inválida"},400)}
- const message=typeof body.message==="string"?body.message.trim().slice(0,700):"";
- const topic=typeof body.topic==="string"?body.topic:"";
- const tool=(topics[topic]||resolve(message,ctx.ctx.membership.role)) as AiToolName|null;
- const farmId=typeof body.farmId==="string"&&body.farmId.length<120?body.farmId:null;
- const weight=typeof body.minWeightKg==="number"?body.minWeightKg:
-  Number(message.match(/(?:m[aá]s de|al menos|m[ií]nimo|desde)\s*(\d{2,4})\s*(?:kg|kilos)/i)?.[1]||450);
- if(!tool)return send({reply:"Puedo consultar tus fincas, ganado, sanidad, finanzas o preparar una preselección de venta. ¿Qué necesitas revisar? Esta versión de prueba aún no utiliza OpenAI.",farms:ctx.farms,mode:"asistido"});
- if(!isAuthorizedAiTool(ctx.ctx.membership.role,tool))return send({error:"Tu perfil no tiene acceso a esa información."},403);
- try{
-  const result=await runAiTool(ctx,tool,{farmId,minWeightKg:weight});
-  return send({reply:result.text,tool,farms:ctx.farms,mode:"asistido",paidAiAvailable:isPaidAiEnabled({enabled:process.env.GANADIA_AI_PAID_ENABLED,approved:process.env.GANADIA_AI_COST_APPROVED,keyPresent:!!process.env.OPENAI_API_KEY})});
- }catch(e){
-  if(e instanceof Error&&e.message==="FARM_DENIED")return send({error:"No tienes permiso para esa finca."},403);
-  if(e instanceof Error&&e.message==="INVALID_WEIGHT")return send({error:"Introduce un peso mínimo entre 1 y 2000 kg."},422);
-  return send({error:"La consulta no pudo completarse."},500);
- }
+export async function POST(request: Request) {
+  const ctx = await makeAiContext();
+  if (!ctx) return send({ error: "Necesitas iniciar sesión y pertenecer a una empresa." }, 401);
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return send({ error: "Origen no autorizado." }, 403);
+  if (!request.headers.get("content-type")?.startsWith("application/json")) {
+    return send({ error: "Formato no admitido." }, 415);
+  }
+  const raw = await request.text();
+  if (raw.length > 5000) return send({ error: "Consulta demasiado larga." }, 413);
+  let body: { message?: unknown; topic?: unknown; farmId?: unknown; minWeightKg?: unknown };
+  try { body = JSON.parse(raw); } catch { return send({ error: "Solicitud inválida." }, 400); }
+  const message = typeof body.message === "string" ? body.message.trim().slice(0, 700) : "";
+  const topic = typeof body.topic === "string" ? body.topic : "";
+  const role = ctx.ctx.membership.role;
+  const allowed = allowedAiTools(role);
+  if (!allowed.length) return send({ error: "Tu perfil no permite consultas con IA." }, 403);
+  const farmId = typeof body.farmId === "string" && body.farmId.length < 120 ? body.farmId : null;
+  if (!scopeFarmIds(farmId, ctx.farms.map(f => f.id))) {
+    return send({ error: "No tienes permiso para esa finca." }, 403);
+  }
+  const fromMessage = message.match(/(?:m[aá]s de|al menos|m[ií]nimo|desde)\s*(\d{1,4})\s*(?:kg|kilos)/i);
+  const weight = !topic && fromMessage ? Number(fromMessage[1]) :
+    typeof body.minWeightKg === "number" ? body.minWeightKg : 450;
+  const tool = (topics[topic] || resolve(message, role)) as AiToolName | null;
+  if (tool && !isAuthorizedAiTool(role, tool)) {
+    return send({ error: "Tu perfil no tiene acceso a esa información." }, 403);
+  }
+  const generative = isPaidAiEnabled({
+    enabled: process.env.GANADIA_AI_PAID_ENABLED,
+    approved: process.env.GANADIA_AI_COST_APPROVED,
+    keyPresent: Boolean(process.env.OPENAI_API_KEY),
+  });
+  try {
+    // The old deterministic assistant stays available without billable AI.
+    if (!generative) {
+      if (!tool) return send({
+        reply: "Puedo consultar tus fincas, ganado, sanidad, finanzas o preparar una preselección de venta. ¿Qué necesitas revisar? Esta versión todavía no utiliza OpenAI.",
+        farms: ctx.farms, mode: "asistido",
+      });
+      const result = await runAiTool(ctx, tool, { farmId, minWeightKg: weight });
+      return send({ reply: result.text, tool, farms: ctx.farms, mode: "asistido" });
+    }
+    if (!message) return send({ error: "Escribe una consulta." }, 422);
+    const preloaded = tool ? {
+      name: tool, text: (await runAiTool(ctx, tool, { farmId, minWeightKg: weight })).text,
+    } : undefined;
+    const result = await converseGanadia({
+      message, role, farms: ctx.farms, allowedTools: allowed,
+      selectedFarmId: farmId, minWeightKg: weight, preloaded,
+    }, {
+      invoke: payload => invokeGanadiaPilotedOpenAI({
+        tenantId: ctx.ctx.tenant.id, userId: ctx.ctx.user.id,
+      }, payload),
+      runTool: (name, args) => runAiTool(ctx, name, args),
+    });
+    return send({ ...result, farms: ctx.farms, mode: "generativo" });
+  } catch (e) {
+    if (e instanceof GanadiaPilotBudgetError) {
+      const code = e.code;
+      return send({
+        error: code === "PILOT_BUDGET_EXHAUSTED" ?
+          "La cuota temporal de pruebas de IA se agotó. Las consultas asistidas siguen disponibles." :
+          "El control de presupuesto de pruebas no está listo; no se realizó ninguna llamada paga.",
+      }, code === "PILOT_BUDGET_EXHAUSTED" ? 429 : 503);
+    }
+    if (e instanceof Error && e.message === "FARM_DENIED") return send({ error: "No tienes permiso para esa finca." }, 403);
+    if (e instanceof Error && (e.message === "INVALID_WEIGHT" || e.message === "AI_TOOL_ARGS_INVALID")) {
+      return send({ error: "Introduce un peso mínimo válido entre 1 y 2000 kg." }, 422);
+    }
+    if (e instanceof Error && (e.message === "TOOL_DENIED" || e.message === "AI_ROLE_DENIED")) {
+      return send({ error: "No tienes permiso para esa consulta." }, 403);
+    }
+    console.error("GanadIA AI request failed", e instanceof Error ? e.message : "unknown error");
+    return send({ error: "No se pudo completar la consulta con IA. Inténtalo más tarde." }, 503);
+  }
 }
