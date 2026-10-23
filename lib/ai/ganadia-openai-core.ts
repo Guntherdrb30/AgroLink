@@ -1,5 +1,5 @@
 /* Testable GanadIA conversational orchestration. No direct API access. */
-import { selectGanadiaModelHistory } from "./ganadia-memory-policy";
+import { selectGanadiaModelHistory } from "./ganadia-memory-policy.ts";
 export type GanadiaToolName =
   | "listar_fincas" | "resumen_ganado" | "resumen_sanidad"
   | "resumen_finanzas" | "preseleccionar_venta";
