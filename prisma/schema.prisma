@@ -1061,3 +1061,28 @@ model VeterinaryProfessionalProfile {
   @@unique([tenantId, userId])
   @@index([tenantId, licenseNumber])
 }
+
+/** Shared lifetime pilot cap, across all tenants and users (integer micro-USD). */
+model GanadiaAiPilotBudget {
+  id               String   @id
+  spentMicroUsd    Int      @default(0)
+  reservedMicroUsd Int      @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+/** One reservation per billable OpenAI API response. Unknown charges stay held. */
+model GanadiaAiPilotAttempt {
+  id               String   @id @default(cuid())
+  tenantId         String
+  userId           String
+  status           String   @default("RESERVED")
+  reservedMicroUsd Int
+  billedMicroUsd   Int      @default(0)
+  inputTokens      Int?
+  outputTokens     Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([tenantId, createdAt])
+}
