@@ -67,7 +67,7 @@ test("model cannot choose an unassigned farm even when user selected all", async
 test("preloaded verified results need one model call and no tools", async () => {
   let calls = 0;
   const result = await converseGanadia(validInput({
-    preloaded: { name: "resumen_ganado", text: "3 animales" },
+    preloaded: [{ name: "resumen_ganado", text: "3 animales" }],
   }), {
     invoke: async body => {
       calls++;
@@ -85,4 +85,43 @@ test("missing reply and unexpected second tool calls fail closed", async () => {
     invoke: async () => ({ status: "completed", output: [] }),
     runTool: async () => ({ text: "unused" }),
   }), /AI_RESPONSE_EMPTY/);
+});
+
+test("multiple verified ERP tools are included in one OpenAI request", async () => {
+  let calls = 0;
+  const result = await converseGanadia(validInput({
+    message: "Consulta mis fincas, cuantos animales tengo y el peso promedio",
+    preloaded: [
+      { name: "resumen_ganado", text: "Hay 432 animales. Peso promedio: 264.9 kg." },
+      { name: "listar_fincas", text: "Fincas: Angelucci y Hato La prueba." },
+    ],
+  }), {
+    invoke: async body => {
+      calls++;
+      assert.equal(body.tools.length, 0);
+      assert.equal(body.tool_choice, "none");
+      const payload = JSON.stringify(body.input);
+      assert.match(payload, /432 animales/);
+      assert.match(payload, /Hato La prueba/);
+      return { status: "completed", output_text: "432 animales con promedio de 264.9 kg." };
+    },
+    runTool: async () => { throw Error("ALREADY_VERIFIED"); },
+  });
+  assert.equal(result.reply, "432 animales con promedio de 264.9 kg.");
+  assert.equal(calls, 1);
+});
+
+test("multiple preloaded tools must all be allowed for the role", async () => {
+  let invoked = false;
+  await assert.rejects(converseGanadia(validInput({
+    allowedTools: ["listar_fincas"],
+    preloaded: [
+      { name: "listar_fincas", text: "Finca A" },
+      { name: "resumen_finanzas", text: "PRIVATE FINANCES" },
+    ],
+  }), {
+    invoke: async () => { invoked = true; return { status: "completed", output_text: "NO" }; },
+    runTool: async () => ({ text: "NO" }),
+  }), /TOOL_DENIED/);
+  assert.equal(invoked, false);
 });

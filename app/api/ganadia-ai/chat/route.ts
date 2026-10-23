@@ -7,6 +7,7 @@ import {
 import { converseGanadia } from "@/lib/ai/ganadia-openai-core";
 import { invokeGanadiaPilotedOpenAI } from "@/lib/ai/ganadia-openai";
 import { GanadiaPilotBudgetError } from "@/lib/ai/ganadia-budget";
+import { inferGanadiaReadTools } from "@/lib/ai/ganadia-intent";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const send = (value: unknown, status = 200) =>
@@ -15,17 +16,6 @@ const topics: Record<string, AiToolName> = {
   fincas: "listar_fincas", ganado: "resumen_ganado", sanidad: "resumen_sanidad",
   finanzas: "resumen_finanzas", venta: "preseleccionar_venta",
 };
-function resolve(message: string, role: string): AiToolName | null {
-  const m = message.toLocaleLowerCase("es-VE");
-  if (/(vender|venta|precio de venta|listos para vender)/.test(m)) return "preseleccionar_venta";
-  if (/(cu[aá]ntas fincas|mis fincas|lista de fincas|qu[eé] fincas)/.test(m)) return "listar_fincas";
-  if (/(gastos|ingresos|finanzas|cuentas por cobrar|cuentas por pagar|balance|deudas|facturaci[oó]n)/.test(m)) return "resumen_finanzas";
-  if (/(vacunas|vacunaci[oó]n|sanidad|enferm|salud|tratamientos|veterinari)/.test(m)) return "resumen_sanidad";
-  if (/(ganado|animales|peso|inventario|reses|cabezas)/.test(m)) return "resumen_ganado";
-  if (role === "ACCOUNTING") return "resumen_finanzas";
-  if (role === "VETERINARIAN") return "resumen_sanidad";
-  return null;
-}
 export async function POST(request: Request) {
   const ctx = await makeAiContext();
   if (!ctx) return send({ error: "Necesitas iniciar sesión y pertenecer a una empresa." }, 401);
@@ -50,9 +40,9 @@ export async function POST(request: Request) {
   const fromMessage = message.match(/(?:m[aá]s de|al menos|m[ií]nimo|desde)\s*(\d{1,4})\s*(?:kg|kilos)/i);
   const weight = !topic && fromMessage ? Number(fromMessage[1]) :
     typeof body.minWeightKg === "number" ? body.minWeightKg : 450;
-  const tool = (topics[topic] || resolve(message, role)) as AiToolName | null;
-  if (tool && !isAuthorizedAiTool(role, tool)) {
-    return send({ error: "Tu perfil no tiene acceso a esa información." }, 403);
+  const requestedTools: AiToolName[] = topics[topic] ? [topics[topic]] : inferGanadiaReadTools(message);
+  if (requestedTools.some(name => !isAuthorizedAiTool(role, name))) {
+    return send({ error: "Tu perfil no tiene acceso a toda la información solicitada." }, 403);
   }
   const generative = isPaidAiEnabled({
     enabled: process.env.GANADIA_AI_PAID_ENABLED,
@@ -62,17 +52,20 @@ export async function POST(request: Request) {
   try {
     // The old deterministic assistant stays available without billable AI.
     if (!generative) {
-      if (!tool) return send({
+      if (!requestedTools.length) return send({
         reply: "Puedo consultar tus fincas, ganado, sanidad, finanzas o preparar una preselección de venta. ¿Qué necesitas revisar? Esta versión todavía no utiliza OpenAI.",
         farms: ctx.farms, mode: "asistido",
       });
-      const result = await runAiTool(ctx, tool, { farmId, minWeightKg: weight });
-      return send({ reply: result.text, tool, farms: ctx.farms, mode: "asistido" });
+      const summaries = await Promise.all(requestedTools.map(name => runAiTool(ctx, name, { farmId, minWeightKg: weight })));
+      return send({
+        reply: summaries.map(item => item.text).join("\n\n"),
+        tool: requestedTools[0], farms: ctx.farms, mode: "asistido",
+      });
     }
     if (!message) return send({ error: "Escribe una consulta." }, 422);
-    const preloaded = tool ? {
-      name: tool, text: (await runAiTool(ctx, tool, { farmId, minWeightKg: weight })).text,
-    } : undefined;
+    const preloaded = await Promise.all(requestedTools.map(async name => ({
+      name, text: (await runAiTool(ctx, name, { farmId, minWeightKg: weight })).text,
+    })));
     const result = await converseGanadia({
       message, role, farms: ctx.farms, allowedTools: allowed,
       selectedFarmId: farmId, minWeightKg: weight, preloaded,

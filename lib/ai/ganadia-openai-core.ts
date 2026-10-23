@@ -26,7 +26,7 @@ export type GanadiaConversationInput = {
   message: string; role: string; farms: GanadiaAiFarm[];
   allowedTools: readonly GanadiaToolName[];
   selectedFarmId: string | null; minWeightKg: number;
-  preloaded?: { name: GanadiaToolName; text: string };
+  preloaded?: ReadonlyArray<{ name: GanadiaToolName; text: string }>;
 };
 export type GanadiaConversationDeps = {
   invoke: (body: GanadiaModelRequest) => Promise<GanadiaModelResponse>;
@@ -66,10 +66,11 @@ function outputText(reply: GanadiaModelResponse): string {
     .map(item => item.text || "").join("\n").trim();
 }
 function textInput(input: GanadiaConversationInput): string {
-  const context = input.preloaded ?
-    "\n\nCONTEXTO VERIFICADO DE BASE DE DATOS (" + input.preloaded.name + "):\n" + input.preloaded.text :
-    "";
-  return input.message + context;
+  const verified = (input.preloaded || []).map(item =>
+    "[" + item.name + "]\n" + item.text
+  ).join("\n\n");
+  return input.message + (verified ?
+    "\n\nCONTEXTO VERIFICADO DEL ERP (consultas autorizadas de solo lectura):\n" + verified : "");
 }
 function requestBase(input: GanadiaConversationInput): GanadiaModelRequest {
   const farms = JSON.stringify(input.farms.map(f => ({ id: f.id, name: f.name })));
@@ -87,14 +88,17 @@ function requestBase(input: GanadiaConversationInput): GanadiaModelRequest {
     "Peso mínimo sugerido: " + input.minWeightKg + " kg.",
     "Si el usuario pregunta algo general, puedes responder con conocimiento general indicando que no procede de registros de su finca.",
     "No alegues haber consultado registros si ninguna herramienta o contexto verificado fue proporcionado.",
+    "Cuando recibas CONTEXTO VERIFICADO DEL ERP, utiliza las cifras y nombres que contiene; no le pidas al usuario un reporte que ya fue consultado.",
+    "Si hay varias herramientas verificadas, sintetiza sus resultados en una sola respuesta e indica limitaciones de los datos cuando corresponda.",
+    "Evita Markdown (asteriscos, tablas o encabezados con #); la interfaz muestra texto plano.",
   ].join("\n");
   return {
     model: "gpt-5.4-mini", instructions,
     input: [{ role: "user", content: textInput(input) }],
     store: false, max_output_tokens: GANADIA_AI_MAX_OUTPUT,
     parallel_tool_calls: false, reasoning: { effort: "none" },
-    tools: input.preloaded ? [] : input.allowedTools.map(toolDefinition),
-    tool_choice: input.preloaded || input.allowedTools.length === 0 ? "none" : "auto",
+    tools: input.preloaded?.length ? [] : input.allowedTools.map(toolDefinition),
+    tool_choice: input.preloaded?.length || input.allowedTools.length === 0 ? "none" : "auto",
   };
 }
 export async function converseGanadia(
@@ -105,7 +109,7 @@ export async function converseGanadia(
   if (input.selectedFarmId && !input.farms.some(f => f.id === input.selectedFarmId)) {
     throw new Error("FARM_DENIED");
   }
-  if (input.preloaded && !input.allowedTools.includes(input.preloaded.name)) {
+  if (input.preloaded?.some(item => !input.allowedTools.includes(item.name))) {
     throw new Error("TOOL_DENIED");
   }
   const firstBody = requestBase(input);
@@ -115,9 +119,9 @@ export async function converseGanadia(
   if (calls.length === 0) {
     const reply = outputText(first);
     if (!reply) throw new Error("AI_RESPONSE_EMPTY");
-    return { reply, tool: input.preloaded?.name };
+    return { reply, tool: input.preloaded?.[0]?.name };
   }
-  if (calls.length !== 1 || input.preloaded) throw new Error("AI_UNEXPECTED_TOOL_CALL");
+  if (calls.length !== 1 || input.preloaded?.length) throw new Error("AI_UNEXPECTED_TOOL_CALL");
   const call = calls[0];
   if (!call.name || !input.allowedTools.includes(call.name as GanadiaToolName) ||
       !call.call_id || typeof call.arguments !== "string") {
