@@ -8,6 +8,7 @@ import { converseGanadia } from "@/lib/ai/ganadia-openai-core";
 import { invokeGanadiaPilotedOpenAI } from "@/lib/ai/ganadia-openai";
 import { GanadiaPilotBudgetError } from "@/lib/ai/ganadia-budget";
 import { inferGanadiaReadTools } from "@/lib/ai/ganadia-intent";
+import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-memory";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const send = (value: unknown, status = 200) =>
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     keyPresent: Boolean(process.env.OPENAI_API_KEY),
   });
   try {
+    const chat = await beginGanadiaChatTurn(ctx);
     // The old deterministic assistant stays available without billable AI.
     if (!generative) {
       if (!requestedTools.length) return send({
@@ -57,10 +59,9 @@ export async function POST(request: Request) {
         farms: ctx.farms, mode: "asistido",
       });
       const summaries = await Promise.all(requestedTools.map(name => runAiTool(ctx, name, { farmId, minWeightKg: weight })));
-      return send({
-        reply: summaries.map(item => item.text).join("\n\n"),
-        tool: requestedTools[0], farms: ctx.farms, mode: "asistido",
-      });
+      const reply = summaries.map(item => item.text).join("\n\n");
+      await appendGanadiaChatTurn(ctx, chat, message, reply);
+      return send({ reply, tool: requestedTools[0], farms: ctx.farms, mode: "asistido" });
     }
     if (!message) return send({ error: "Escribe una consulta." }, 422);
     const preloaded = await Promise.all(requestedTools.map(async name => ({
@@ -68,13 +69,15 @@ export async function POST(request: Request) {
     })));
     const result = await converseGanadia({
       message, role, farms: ctx.farms, allowedTools: allowed,
-      selectedFarmId: farmId, minWeightKg: weight, preloaded,
+      selectedFarmId: farmId, minWeightKg: weight, preloaded, history: chat.history,
     }, {
       invoke: payload => invokeGanadiaPilotedOpenAI({
         tenantId: ctx.ctx.tenant.id, userId: ctx.ctx.user.id,
       }, payload),
       runTool: (name, args) => runAiTool(ctx, name, args),
     });
+    const saved = await appendGanadiaChatTurn(ctx, chat, message, result.reply);
+    if (!saved) return send({ error: "La conversación se limpió mientras se generaba la respuesta. No se guardó el mensaje." }, 409);
     return send({ ...result, farms: ctx.farms, mode: "generativo" });
   } catch (e) {
     if (e instanceof GanadiaPilotBudgetError) {
