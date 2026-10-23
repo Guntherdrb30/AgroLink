@@ -212,6 +212,7 @@ model User {
   defaultTenant            Tenant?                   @relation("DefaultTenant", fields: [defaultTenantId], references: [id], onDelete: SetNull)
   accounts                 Account[]
   sessions                 Session[]
+  ganadiaAiConversations   GanadiaAiConversation[]
   memberships              TenantMembership[]
   farmAccesses             TenantFarmAccess[]
   veterinaryProfiles       VeterinaryProfessionalProfile[]
@@ -240,6 +241,7 @@ model Tenant {
   isVerified           Boolean                   @default(false)
   defaultUsers         User[]                    @relation("DefaultTenant")
   memberships          TenantMembership[]
+  ganadiaAiConversations GanadiaAiConversation[]
   farmAccesses         TenantFarmAccess[]
   veterinaryProfiles  VeterinaryProfessionalProfile[]
   invitations          TenantInvitation[]
@@ -1085,4 +1087,41 @@ model GanadiaAiPilotAttempt {
 
   @@index([userId, status])
   @@index([tenantId, createdAt])
+}
+
+/**
+ * User-owned persistent chat. accessHash is a server-generated fingerprint of
+ * tenant, user, current role and authorized farm IDs. Permission changes
+ * cannot expose old ERP-sensitive answers to an account with reduced access.
+ */
+model GanadiaAiConversation {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  accessHash  String   @db.VarChar(64)
+  generation  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    GanadiaAiMessage[]
+
+  @@unique([tenantId, userId, accessHash])
+  @@index([userId, updatedAt])
+}
+
+/**
+ * User/assistant turns are persisted server-side and sorted by database
+ * sequence, never by client timestamps. Clearing the chat deletes these rows.
+ */
+model GanadiaAiMessage {
+  id             String   @id @default(cuid())
+  sequence       BigInt   @unique @default(autoincrement())
+  conversationId String
+  role           String
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+  conversation   GanadiaAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sequence])
 }
