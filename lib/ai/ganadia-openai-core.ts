@@ -1,4 +1,5 @@
-/* Stateless, testable GanadIA conversational orchestration. No direct API access. */
+/* Testable GanadIA conversational orchestration. No direct API access. */
+import { selectGanadiaModelHistory } from "./ganadia-memory-policy";
 export type GanadiaToolName =
   | "listar_fincas" | "resumen_ganado" | "resumen_sanidad"
   | "resumen_finanzas" | "preseleccionar_venta";
@@ -27,6 +28,7 @@ export type GanadiaConversationInput = {
   allowedTools: readonly GanadiaToolName[];
   selectedFarmId: string | null; minWeightKg: number;
   preloaded?: ReadonlyArray<{ name: GanadiaToolName; text: string }>;
+  history?: ReadonlyArray<{ role: "user" | "assistant"; content: string }>;
 };
 export type GanadiaConversationDeps = {
   invoke: (body: GanadiaModelRequest) => Promise<GanadiaModelResponse>;
@@ -91,10 +93,11 @@ function requestBase(input: GanadiaConversationInput): GanadiaModelRequest {
     "Cuando recibas CONTEXTO VERIFICADO DEL ERP, utiliza las cifras y nombres que contiene; no le pidas al usuario un reporte que ya fue consultado.",
     "Si hay varias herramientas verificadas, sintetiza sus resultados en una sola respuesta e indica limitaciones de los datos cuando corresponda.",
     "Evita Markdown (asteriscos, tablas o encabezados con #); la interfaz muestra texto plano.",
+    "La conversación anterior ayuda a comprender referencias como esos animales, esa finca o el mismo peso. Nunca uses cifras previas como si fueran datos ERP actualizados: vuelve a consultar el ERP cuando corresponda.",
   ].join("\n");
   return {
     model: "gpt-5.4-mini", instructions,
-    input: [{ role: "user", content: textInput(input) }],
+    input: [...selectGanadiaModelHistory(input.history || []).map(turn => ({role: turn.role, content: turn.content})), { role: "user", content: textInput(input) }],
     store: false, max_output_tokens: GANADIA_AI_MAX_OUTPUT,
     parallel_tool_calls: false, reasoning: { effort: "none" },
     tools: input.preloaded?.length ? [] : input.allowedTools.map(toolDefinition),
