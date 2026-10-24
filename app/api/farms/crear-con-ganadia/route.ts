@@ -31,8 +31,8 @@ export async function POST(request:Request){
    let r=await tx.farmSetupSession.findUnique({where:{tenantId_userId:k}});
    if(input.action==="reset"){
     if(r&&r.version!==input.version)return {code:409,data:{error:"El borrador cambió, actualiza la página."}};
-    if(r?.status==="APPLIED")return {code:409,data:{error:"Esta finca ya fue creada."}};
-    r=await tx.farmSetupSession.upsert({where:{tenantId_userId:k},create:{...k,version:1},update:{step:"vision",status:"COLLECTING",answers:{},messages:[],proposal:Prisma.DbNull,proposalSource:null,version:{increment:1}}});
+    // A completed setup may start a DIFFERENT farm; the approved profile remains on the old farm.
+    r=await tx.farmSetupSession.upsert({where:{tenantId_userId:k},create:{...k,version:1},update:{step:"vision",status:"COLLECTING",answers:{},messages:[],proposal:Prisma.DbNull,proposalSource:null,createdFarmId:null,version:{increment:1}}});
     return {code:200,data:view(r)};
    }
    if(!r){
