@@ -3,9 +3,10 @@ import { prisma } from "@/lib/db/prisma";
 import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import type { GanadiaContext } from "@/lib/ai/ganadia-tools";
 
-type DraftInput = {
+export type DraftInput = {
  farmId:string;buyerName:string;buyerDocument?:string;destination?:string;
  animalIds:string[];pricePerKgCents:number;currency:string;notes?:string;requestKey:string;saleDate:string;
+ guideData?:Record<string,string>;
 };
 export function validateSale(input:DraftInput) {
  if(!input.farmId||!input.requestKey||input.requestKey.length>100)throw Error("INVALID_REQUEST");
@@ -16,6 +17,13 @@ export function validateSale(input:DraftInput) {
  if((input.notes||"").length>1000||(input.destination||"").length>200||(input.buyerDocument||"").length>100)throw Error("INVALID_DETAILS");
  const date=new Date(input.saleDate);
  if(!Number.isFinite(date.getTime())||date.getTime()>Date.now()+86400000||date.getTime()<Date.now()-366*86400000)throw Error("INVALID_DATE");
+ if(input.guideData!==undefined){
+  if(!input.guideData||typeof input.guideData!=="object"||Array.isArray(input.guideData))throw Error("INVALID_GUIDE_DATA");
+  const fields=["buyerAddress","buyerPhone","buyerEmail","buyerContact","destinationAddress","originOwner","originDocument","originAddress","originPhone","farmIron","movementPurpose","plannedDeparture","plannedTime","route","vehicle","vehiclePlate","driverName","driverDocument","driverPhone","healthNotes","paymentTerms","responsibleName"];
+  for(const [key,value] of Object.entries(input.guideData)){
+   if(!fields.includes(key)||typeof value!=="string"||value.length>350)throw Error("INVALID_GUIDE_DATA");
+  }
+ }
  return date;
 }
 async function assertFarm(ctx:GanadiaContext,farmId:string) {
@@ -48,9 +56,11 @@ export async function makeSaleDraft(ctx:GanadiaContext,input:DraftInput) {
   });
   if(!Number.isSafeInteger(total)||!Number.isSafeInteger(sumWeight))throw Error("INVALID_TOTAL");
   const id=crypto.randomUUID();
+  const verificationToken=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
   const number="GI-"+new Date().toISOString().slice(0,10).replaceAll("-","")+"-"+id.slice(0,8).toUpperCase();
   await tx.livestockSale.create({data:{
    id,tenantId:ctx.tenant.id,farmId:input.farmId,number,status:"DRAFT",buyerName:input.buyerName.trim(),
+   guideData:input.guideData||{},verificationToken,
    buyerDocument:input.buyerDocument?.trim()||null,destination:input.destination?.trim()||null,
    saleDate:date,currency:input.currency,pricePerKgCents:input.pricePerKgCents,
    totalWeightKg:new Prisma.Decimal(sumWeight).div(100),totalCents:total,
@@ -64,7 +74,7 @@ export async function loadSale(ctx:GanadiaContext,id:string){
  if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER","ACCOUNTING"].includes(ctx.membership.role))return null;
  const allowed=await allowedFarmIds(ctx.tenant.id,ctx.user.id,ctx.membership.role);
  return prisma.livestockSale.findFirst({where:{id,tenantId:ctx.tenant.id,...(allowed?{farmId:{in:allowed}}:{})},
- include:{farm:{select:{id:true,name:true,location:true,logoUrl:true,logoFileId:true}},
+ include:{farm:{select:{id:true,name:true,location:true,logoUrl:true,logoFileId:true,ironCode:true,ironFileId:true}},
  items:{select:{animalId:true,codeSnapshot:true,sexSnapshot:true,weightKg:true,weightSource:true,lastWeighedAt:true,subtotalCents:true}}}});
 }
 export async function confirmInternalSale(ctx:GanadiaContext,id:string,confirm:boolean){
