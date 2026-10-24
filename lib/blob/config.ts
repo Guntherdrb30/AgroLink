@@ -10,6 +10,7 @@ export type UploadUsageKey =
   | "report_file"
   | "farm_primary_image"
   | "farm_logo"
+  | "farm_iron"
   | "operation_sheet";
 
 type UploadProfile = {
@@ -92,6 +93,7 @@ export const uploadProfiles: Record<UploadUsageKey, UploadProfile> = {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     pathSegment: "farms/primary-images",
   },
+  farm_iron: {usage:"FARM_IRON",category:"IMAGE",visibility:"PRIVATE",maxSizeBytes:5*1024*1024,allowedMimeTypes:["image/png","image/jpeg","image/webp"],pathSegment:"farms/irons"},
   farm_logo: {
     usage: "FARM_LOGO",
     category: "IMAGE",

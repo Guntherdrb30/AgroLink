@@ -1,0 +1,5 @@
+ALTER TYPE "FileUsage" ADD VALUE IF NOT EXISTS 'FARM_IRON';
+ALTER TABLE "Farm" ADD COLUMN IF NOT EXISTS "ironCode" TEXT, ADD COLUMN IF NOT EXISTS "ironFileId" TEXT;
+ALTER TABLE "LivestockSale" ADD COLUMN IF NOT EXISTS "guideData" JSONB, ADD COLUMN IF NOT EXISTS "verificationToken" TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS "LivestockSale_verificationToken_key" ON "LivestockSale"("verificationToken");
+ALTER TABLE "Farm" ADD CONSTRAINT "Farm_ironFileId_fkey" FOREIGN KEY ("ironFileId") REFERENCES "FileStorage"("id") ON DELETE SET NULL ON UPDATE CASCADE;

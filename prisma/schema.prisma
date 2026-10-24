@@ -72,6 +72,7 @@ enum FileCategory {
 }
 
 enum FileUsage {
+  FARM_IRON
   SALE_PERMIT
   VERIFICATION_DOCUMENT
   LIVESTOCK_IMAGE
@@ -340,6 +341,7 @@ model FileStorage {
   verificationDocuments VerificationDocument[]
   farmPrimaryImages     Farm[]                 @relation("FarmPrimaryImage")
   farmLogos             Farm[]                 @relation("FarmLogo")
+  farmIrons             Farm[]                 @relation("FarmIron")
   operationSheets       LivestockOperationSheet[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -361,7 +363,10 @@ model Farm {
   primaryImageFile    FileStorage?         @relation("FarmPrimaryImage", fields: [primaryImageFileId], references: [id], onDelete: SetNull)
   logoUrl             String?
   logoFileId          String?
+  ironCode            String?
+  ironFileId          String?
   logoFile            FileStorage?         @relation("FarmLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
+  ironFile            FileStorage?         @relation("FarmIron", fields: [ironFileId], references: [id], onDelete: SetNull)
   hectares            Decimal?             @db.Decimal(12, 2)
   status              FarmStatus           @default(DRAFT)
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1159,6 +1164,8 @@ model LivestockSale {
   confirmedById String?
   confirmedAt DateTime?
   insaiPermitNumber String?
+  guideData Json?
+  verificationToken String? @unique
   insaiPermitFileId String?
   insaiPermitAttachedAt DateTime?
   createdAt DateTime @default(now())
