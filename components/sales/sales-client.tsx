@@ -128,7 +128,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
     <p className="font-bold">{s.number} · {s.status==="DRAFT"?"Borrador":"Confirmada"}</p>
     <p className="text-sm">{s.buyerName} · {s._count.items} animales · {Number(s.totalWeightKg).toLocaleString("es-VE")} kg</p>
     <a className="inline-flex items-center gap-2 text-sm font-semibold text-[#27593a]" href={"/api/livestock-sales/"+s.id+"/receipt"}><FileDown className="size-4"/> Comprobante interno PDF</a>
-    {s.insaiPermitNumber?<p className="text-xs text-[#5b745f]">Soporte INSAI: {s.insaiPermitNumber}</p>:canEdit?<div className="space-y-2 rounded-xl bg-[#f7faf6] p-3">
+    {s.insaiPermitNumber?<p className="text-xs text-[#5b745f]">Soporte INSAI: {s.insaiPermitNumber} · <a className="font-bold underline" href={"/api/livestock-sales/"+s.id+"/insai/file"}>Descargar soporte</a></p>:canEdit?<div className="space-y-2 rounded-xl bg-[#f7faf6] p-3">
      <p className="text-xs text-[#647667]">Adjuntar permiso oficial INSAI (opcional, separado del comprobante interno).</p>
      <input className={input} placeholder="Número de la guía oficial" value={permitNo} onChange={e=>setPermitNo(e.target.value)} aria-label="Número de guía INSAI"/>
      <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e=>setFile(e.target.files?.[0]||null)} aria-label="Archivo INSAI"/>
