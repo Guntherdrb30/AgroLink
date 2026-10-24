@@ -26,7 +26,7 @@ export async function recordLivestockMove(tenantId:string,actorId:string,data:Mo
     for(const [id,farmId] of [[data.fromAreaId,data.fromFarmId],[data.toAreaId,data.toFarmId]]) {
       if(id&&!areas.some(a=>a.id===id&&a.farmId===farmId&&(a.kind==="FOUNDATION"||a.kind==="PADDOCK")))throw Error("AREA_INVALIDA");
     }
-    const animals=await tx.animal.findMany({where:{tenantId,id:{in:data.animalIds}},select:{id:true,farmId:true,internalCode:true}});
+    const animals=await tx.animal.findMany({where:{tenantId,id:{in:data.animalIds},inventoryStatus:"ACTIVE"},select:{id:true,farmId:true,internalCode:true}});
     if(animals.length!==data.animalIds.length||animals.some(a=>a.farmId!==data.fromFarmId))throw Error("ANIMAL_CAMBIO_DE_ORIGEN");
     const latest=await tx.livestockMovementItem.findMany({
       where:{tenantId,animalId:{in:data.animalIds}},include:{movement:true},
@@ -48,7 +48,7 @@ export async function recordLivestockMove(tenantId:string,actorId:string,data:Mo
       animals:{create:animals.map(a=>({id:crypto.randomUUID(),tenantId,animalId:a.id,codeSnapshot:a.internalCode}))},
     }});
     for(const animal of animals){
-      const changed=await tx.animal.updateMany({where:{id:animal.id,tenantId,farmId:data.fromFarmId},data:{farmId:data.toFarmId,lotOrZone:null}});
+      const changed=await tx.animal.updateMany({where:{id:animal.id,tenantId,farmId:data.fromFarmId,inventoryStatus:"ACTIVE"},data:{farmId:data.toFarmId,lotOrZone:null}});
       if(changed.count!==1)throw Error("ANIMAL_MODIFICADO_EN_OTRA_SESION");
       await tx.animalEvent.create({data:{
         tenantId,animalId:animal.id,actorUserId:actorId,eventType:"TRANSFER",

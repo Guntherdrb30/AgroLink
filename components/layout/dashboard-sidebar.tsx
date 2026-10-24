@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   PawPrint,
+  Receipt,
   ShieldCheck,
   Users,
   Wallet,
@@ -32,6 +33,7 @@ const primaryItems = [
   { href: "/farms", label: "Fincas", icon: Sprout },
   { href: "/livestock", label: "Ganado", icon: PawPrint },
   { href: "/operations", label: "Jornadas", icon: ClipboardList },
+  { href: "/ventas", label: "Ventas", icon: Receipt },
 ];
 
 function isActive(pathname: string, href: string) {

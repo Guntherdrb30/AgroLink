@@ -36,7 +36,7 @@ export async function getLivestockIndexData(tenantId: string, granted: string[] 
     listAnimalsForRelations(tenantId),
   ]);
 
-  const animals=allAnimals.filter(a=>!granted||granted.includes(a.farmId));
+  const animals=allAnimals.filter(a=>a.inventoryStatus==="ACTIVE"&&(!granted||granted.includes(a.farmId)));
   const farms=allFarms.filter(f=>!granted||granted.includes(f.id));
   const permittedAnimalIds=new Set(animals.map(a=>a.id));
   const relationAnimals=allRelationAnimals.filter(a=>permittedAnimalIds.has(a.id));

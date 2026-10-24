@@ -15,7 +15,7 @@ async function loadWeighingAnalysis(
   tenantId:string, farmIds:string[], referenceDate:Date, minKg:number,
 ):Promise<LivestockWeightResult[]> {
   const animals=await prisma.animal.findMany({
-    where:{tenantId,farmId:{in:farmIds}},
+    where:{tenantId,farmId:{in:farmIds},inventoryStatus:"ACTIVE"},
     select:{
       id:true,internalCode:true,currentWeightKg:true,
       farm:{select:{name:true}},
@@ -133,7 +133,7 @@ export async function runAiTool(session:AiContext,tool:AiToolName,args:Params={}
  const names=session.farms.filter(f=>ids.includes(f.id)).map(f=>f.name);
  if(tool==="listar_fincas")return{text:names.length?"Fincas autorizadas: "+names.join(", ")+".":"No hay fincas asignadas."};
  if(!ids.length)return{text:"No tienes fincas asignadas para esta consulta."};
- const where={tenantId:session.ctx.tenant.id,farmId:{in:ids}};
+ const where={tenantId:session.ctx.tenant.id,farmId:{in:ids},inventoryStatus:"ACTIVE" as const};
  if(tool==="resumen_ganado"){
   const [count,weight]=await Promise.all([prisma.animal.count({where}),prisma.animal.aggregate({where,_sum:{currentWeightKg:true},_avg:{currentWeightKg:true}})]);
   return{text:`Hay ${count} animales registrados en ${names.join(", ")}. Peso total del campo de ficha actual: ${Number(weight._sum.currentWeightKg||0).toLocaleString("es-VE")} kg; promedio del campo de ficha: ${Number(weight._avg.currentWeightKg||0).toFixed(1)} kg. Esto NO certifica la fecha del último pesaje por animal. Para histórico, trabajos de llano o aptitud por peso, consultar las herramientas de pesajes; los animales sin peso no participan del promedio.`};
@@ -141,7 +141,7 @@ export async function runAiTool(session:AiContext,tool:AiToolName,args:Params={}
  if(tool==="resumen_sanidad"){
   const [states,vaccines]=await Promise.all([
    prisma.animal.groupBy({by:["healthStatus"],where,_count:{_all:true}}),
-   prisma.animalVaccinationRecord.count({where:{tenantId:session.ctx.tenant.id,animal:{farmId:{in:ids}},nextDueAt:{lt:new Date()}}}),
+   prisma.animalVaccinationRecord.count({where:{tenantId:session.ctx.tenant.id,animal:{farmId:{in:ids},inventoryStatus:"ACTIVE"},nextDueAt:{lt:new Date()}}}),
   ]);
   return{text:"Estados sanitarios en "+names.join(", ")+": "+(states.map(s=>textoEs(s.healthStatus,saludEs)+": "+s._count._all).join("; ")||"sin datos")+". Registros de vacunas con fecha próxima vencida: "+vaccines+". Un registro vencido no necesariamente equivale a un animal diferente."};
  }

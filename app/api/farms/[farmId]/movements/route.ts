@@ -12,7 +12,7 @@ export async function GET(_:Request,{params}:Context){
  if(!source)return out({error:"Finca no encontrada"},404);
  const [farms,animals,areas,moves]=await Promise.all([
  prisma.farm.findMany({where:{tenantId:current.tenant.id,...(allowed?{id:{in:allowed}}:{})},select:{id:true,name:true},orderBy:{name:"asc"}}),
- prisma.animal.findMany({where:{tenantId:current.tenant.id,farmId},select:{id:true,internalCode:true,visualIdentification:true,currentWeightKg:true},orderBy:{internalCode:"asc"},take:1000}),
+ prisma.animal.findMany({where:{tenantId:current.tenant.id,farmId,inventoryStatus:"ACTIVE"},select:{id:true,internalCode:true,visualIdentification:true,currentWeightKg:true},orderBy:{internalCode:"asc"},take:1000}),
  prisma.farmGeoArea.findMany({where:{tenantId:current.tenant.id,...(allowed?{farmId:{in:allowed}}:{}),kind:{in:["PADDOCK","FOUNDATION"]}},select:{id:true,farmId:true,kind:true,name:true},orderBy:{name:"asc"}}),
  prisma.livestockMovement.findMany({where:{tenantId:current.tenant.id,OR:[{fromFarmId:farmId},{toFarmId:farmId}]},include:{animals:{select:{codeSnapshot:true}}},orderBy:{createdAt:"desc"},take:40}),
  ]);
