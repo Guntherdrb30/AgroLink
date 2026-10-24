@@ -16,6 +16,7 @@ const payload=z.discriminatedUnion("action",[
  z.object({action:z.literal("revise"),version:z.number().int().nonnegative(),field:z.enum(["vision","name","location","hectares","purpose","herd","land","goals"]),text:z.string().max(1800)}),
  z.object({action:z.literal("approve"),version:z.number().int().nonnegative(),confirm:z.literal(true)}),
 ]);
+function sessionSource(x:string|null):string{return x==="OPENAI"?"OPENAI":"ASSISTED";}
 export async function POST(request:Request){
  const c=await scope();if(!c)return send({error:"Solo un propietario o administrador puede crear fincas."},403);
  const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)return send({error:"Origen inválido"},403);
@@ -42,12 +43,16 @@ export async function POST(request:Request){
    if(r.status==="APPLIED")return {code:200,data:view(r)};
    if(input.action==="approve"){
     if(r.status!=="REVIEW")return {code:409,data:{error:"Primero revisa la propuesta."}};
-    const a=setupSchema.parse(r.answers),p=plan(a);
+    const a=setupSchema.parse(r.answers);
+    const baseline=plan(a);
+    const reviewed=r.proposal&&typeof r.proposal==="object"&&!Array.isArray(r.proposal)?r.proposal as Record<string,unknown>:{};
+    const suggested=Array.isArray(reviewed.recommendations)?reviewed.recommendations.filter((x):x is string=>typeof x==="string"&&x.trim().length>0&&x.length<=160).slice(0,9):[];
+    const p={...baseline,recommendations:suggested.length?suggested:baseline.recommendations};
     const existing=await tx.farm.findFirst({where:{tenantId:k.tenantId,name:{equals:a.name,mode:"insensitive"}},select:{id:true}});
     if(existing)return {code:409,data:{error:"Ya existe una finca con ese nombre; modifica la propuesta."}};
     const farm=await tx.farm.create({data:{tenantId:k.tenantId,name:a.name,location:a.location,hectares:a.hectares,status:"PENDING_VERIFICATION",description:a.vision.slice(0,500)}});
     await tx.verificationProfile.create({data:{tenantId:k.tenantId,farmId:farm.id,subjectType:"FARM",subjectId:farm.id,status:"PENDING"}});
-    await tx.farmProductionProfile.create({data:{tenantId:k.tenantId,farmId:farm.id,purpose:p.purpose,answers:a as Prisma.InputJsonValue,recommendedModules:p.modules,futureModules:p.futureModules,recommendations:p.recommendations,warnings:p.warnings,proposalSource:"ASSISTED",approvedById:k.userId}});
+    await tx.farmProductionProfile.create({data:{tenantId:k.tenantId,farmId:farm.id,purpose:p.purpose,answers:a as Prisma.InputJsonValue,recommendedModules:p.modules,futureModules:p.futureModules,recommendations:p.recommendations,warnings:p.warnings,proposalSource:sessionSource(r.proposalSource),approvedById:k.userId}});
     await tx.auditLog.create({data:{tenantId:k.tenantId,actorUserId:k.userId,entityType:"FARM",entityId:farm.id,action:"GUIDED_FARM_CREATED",metadata:{purpose:p.purpose}}});
     const done=await tx.farmSetupSession.update({where:{id:r.id},data:{status:"APPLIED",step:"done",createdFarmId:farm.id,version:{increment:1}}});
     return {code:201,data:view(done)};
