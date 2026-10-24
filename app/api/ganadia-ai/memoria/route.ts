@@ -53,6 +53,6 @@ export async function POST(request:Request){
 export async function DELETE(request:Request){
  const ctx=await context();if(!ctx)return send({error:"No autorizado."},401);
  if(!allowedOrigin(request))return send({error:"Origen inválido."},403);
- try{const input=await body(request);return send(await eraseElitePersonalMemory(ctx,input.confirm));}
+ try{const input=await body(request);return send(await eraseElitePersonalMemory(ctx,typeof input.confirm==="string"?input.confirm:""));}
  catch(e){const code=e instanceof Error?e.message:"MEMORY_BAD_REQUEST";return send({error:code},errorStatus(code));}
 }
