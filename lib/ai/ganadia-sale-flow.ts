@@ -7,8 +7,8 @@ import type { AiContext } from "@/lib/ai/ganadia-tools";
 import { extractTargetKilograms, wantsFarmComparison, acceptsRecommendedFarm, compareAuthorizedFarmCapacity } from "@/lib/ai/ganadia-farm-capacity";
 import { numberFromText, parseSaleSelection, selectSaleAnimals } from "@/lib/ai/ganadia-sale-selection";
 
-type Stage = "farm"|"threshold"|"quantity"|"buyer"|"price"|"review";
-type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;targetKg?:number;differenceKg?:number;suggestedFarmId?:string;key:string};
+type Stage = "farm"|"threshold"|"quantity"|"buyer"|"buyerDoc"|"buyerAddress"|"buyerPhone"|"destination"|"driver"|"vehiclePlate"|"price"|"review";
+type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;targetKg?:number;differenceKg?:number;suggestedFarmId?:string;buyerDocument?:string;buyerAddress?:string;buyerPhone?:string;destinationAddress?:string;driverName?:string;vehiclePlate?:string;key:string};
 const normalize=(s:string)=>s.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const start=/\b(guia|comprobante|documento|preparar venta|quiero vender|vender ganado|hazme la guia|sacar la guia)\b/;
 const cancel=/^(cancelar|salir|detener|anular|olvidar la guia)$/;
@@ -139,11 +139,29 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
    }
   }else if(st.stage==="buyer"){
    if(message.trim().length<2||message.length>150)reply="Indica un nombre de comprador o escribe 'por definir'.";
-   else{st.buyer=message.trim();st.stage="price";reply="¿Cuál es el precio por kilo en dólares? Por ejemplo, 2,50. Si todavía no está acordado, responde 0 y el comprobante quedará con precio pendiente de definir."; }
+   else{st.buyer=message.trim();st.stage="buyerDoc";reply="Dime la cédula o RIF del comprador. Esto se registrará en la guía interna."; }
+  }else if(st.stage==="buyerDoc"){
+   if(message.trim().length<5||message.length>100)reply="Necesito una cédula o RIF válido del comprador, no solo su nombre.";
+   else{st.buyerDocument=message.trim();st.stage="buyerAddress";reply="¿Cuál es la dirección completa del comprador (estado, municipio, sector y dirección)?";}
+  }else if(st.stage==="buyerAddress"){
+   if(message.trim().length<8||message.length>350)reply="Indícame la dirección completa del comprador.";
+   else{st.buyerAddress=message.trim();st.stage="buyerPhone";reply="¿Cuál es el teléfono de contacto del comprador?";}
+  }else if(st.stage==="buyerPhone"){
+   if(!/^[+0-9()\s-]{7,25}$/.test(message.trim()))reply="Indícame un teléfono de contacto válido, por ejemplo +58 412 1234567.";
+   else{st.buyerPhone=message.trim();st.stage="destination";reply="¿Cuál es la dirección o finca de destino del ganado?";}
+  }else if(st.stage==="destination"){
+   if(message.trim().length<6||message.length>350)reply="Necesito una dirección de destino suficientemente completa.";
+   else{st.destinationAddress=message.trim();st.stage="driver";reply="¿Quién será el conductor? Si todavía no está confirmado, escribe 'por definir'."; }
+  }else if(st.stage==="driver"){
+   if(message.trim().length<2||message.length>150)reply="Dime el nombre del conductor o escribe 'por definir'.";
+   else{st.driverName=message.trim();st.stage="vehiclePlate";reply="¿Cuál será la placa del transporte? También puedes escribir 'por definir'."; }
+  }else if(st.stage==="vehiclePlate"){
+   if(message.trim().length<2||message.length>80)reply="Indica la placa o escribe 'por definir'.";
+   else{st.vehiclePlate=message.trim();st.stage="price";reply="¿Cuál es el precio por kilo en dólares? Por ejemplo, 2,50. Puedes responder 0 si está pendiente."; }
   }else if(st.stage==="price"){
    const price=num(normalized);
    if(price===null||!Number.isFinite(price)||price<0||price>100000)reply="Indica el precio por kilo, por ejemplo 2,50 dólares, o 0 si está pendiente.";
-   else{st.price=Math.round(price*100);st.currency="USD";st.stage="review";reply="Revisa la guía interna:\nFinca: "+displayFarm(ctx,st)+"\nAnimales: "+st.quantity+"\nPeso total del último pesaje: "+st.kg!.toLocaleString("es-VE")+" kg\nPeso mínimo: "+st.minKg+" kg\nComprador: "+st.buyer+"\nPrecio: "+price.toLocaleString("es-VE")+" USD/kg"+(st.targetKg?"\nObjetivo: "+st.targetKg.toLocaleString("es-VE")+" kg; diferencia: "+(st.differenceKg!>=0?"+":"")+st.differenceKg!.toLocaleString("es-VE")+" kg":"")+"\n\n¿Autorizas CREAR EL BORRADOR y su PDF? Responde 'sí, crear borrador' o 'cancelar'. Todavía no se vende ni descuenta ningún animal."; }
+   else{st.price=Math.round(price*100);st.currency="USD";st.stage="review";reply="Revisa la guía interna:\nFinca: "+displayFarm(ctx,st)+"\nAnimales: "+st.quantity+"\nPeso total del último pesaje: "+st.kg!.toLocaleString("es-VE")+" kg\nPeso mínimo: "+st.minKg+" kg\nComprador: "+st.buyer+" ("+st.buyerDocument+")\nDireccion: "+st.buyerAddress+"\nTelefono: "+st.buyerPhone+"\nDestino: "+st.destinationAddress+"\nConductor: "+st.driverName+"\nPlaca: "+st.vehiclePlate+"\nPrecio: "+price.toLocaleString("es-VE")+" USD/kg"+(st.targetKg?"\nObjetivo: "+st.targetKg.toLocaleString("es-VE")+" kg; diferencia: "+(st.differenceKg!>=0?"+":"")+st.differenceKg!.toLocaleString("es-VE")+" kg":"")+"\n\n¿Autorizas CREAR EL BORRADOR y su PDF? Responde 'sí, crear borrador' o 'cancelar'. Todavía no se vende ni descuenta ningún animal."; }
   }else if(st.stage==="review"){
    if(!yes.test(normalized)&&!/\b(si|sí)\b.*\b(crear|generar|borrador|guia)\b/.test(normalized))reply="Para guardar el borrador, responde 'sí, crear borrador'. O escribe 'cancelar'. No se descontará ganado.";
    else{
@@ -151,7 +169,7 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
     const ids=st.ids||[];
     if(ids.length!==st.quantity||ids.some(id=>!current.some(a=>a.id===id))){st.stage="quantity";reply="Cambió el inventario o los pesajes. Debemos revisar nuevamente la cantidad antes de crear la guía.";}
     else{
-     const result=await makeSaleDraft(ctx.ctx,{farmId:st.farmId!,animalIds:ids,buyerName:st.buyer!,pricePerKgCents:st.price!,currency:"USD",requestKey:st.key,saleDate:new Date().toISOString(),notes:"Borrador creado por GanadIA AI. "+(st.targetKg?"Objetivo: "+st.targetKg+" kg. Diferencia: "+st.differenceKg+" kg. ":"")+"Revisar datos, pesos y documentos antes de autorizar la venta."});
+     const result=await makeSaleDraft(ctx.ctx,{farmId:st.farmId!,animalIds:ids,buyerName:st.buyer!,buyerDocument:st.buyerDocument,destination:st.destinationAddress,guideData:{buyerAddress:st.buyerAddress||"",buyerPhone:st.buyerPhone||"",destinationAddress:st.destinationAddress||"",driverName:st.driverName||"",vehiclePlate:st.vehiclePlate||""},pricePerKgCents:st.price!,currency:"USD",requestKey:st.key,saleDate:new Date().toISOString(),notes:"Borrador creado por GanadIA AI. "+(st.targetKg?"Objetivo: "+st.targetKg+" kg. Diferencia: "+st.differenceKg+" kg. ":"")+"Revisar datos, pesos y documentos antes de autorizar la venta."});
      draft={id:result.id,url:"/api/livestock-sales/"+encodeURIComponent(result.id)+"/receipt",count:ids.length,kg:st.kg!};
      reply="Listo. Creé tu comprobante INTERNO de venta en BORRADOR para "+ids.length+" animales de "+displayFarm(ctx,st)+". Puedes descargarlo aquí, revisarlo y autorizar la venta posteriormente. No se descontó ganado. No es un permiso INSAI.";
      st=null;
