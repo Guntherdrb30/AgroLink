@@ -4,14 +4,15 @@ import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-me
 import { ganadiaConversationScope } from "@/lib/ai/ganadia-memory-policy";
 import { makeSaleDraft } from "@/server/services/livestock-sale-service";
 import type { AiContext } from "@/lib/ai/ganadia-tools";
+import { numberFromText, parseSaleSelection, selectSaleAnimals } from "@/lib/ai/ganadia-sale-selection";
 
 type Stage = "farm"|"threshold"|"quantity"|"buyer"|"price"|"review";
-type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;key:string};
+type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;targetKg?:number;differenceKg?:number;key:string};
 const normalize=(s:string)=>s.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const start=/\b(guia|comprobante|documento|preparar venta|quiero vender|vender ganado|hazme la guia|sacar la guia)\b/;
 const cancel=/^(cancelar|salir|detener|anular|olvidar la guia)$/;
 const yes=/^(si|sí|confirmo|autorizo|crear|genera|generar|crear borrador|generar borrador)$/;
-const num=(s:string)=>Number((s.match(/\d+(?:[.,]\d+)?/)||[])[0]?.replace(",",".")); 
+const num=(s:string)=>numberFromText(s); 
 function scope(ctx:AiContext){return ganadiaConversationScope({tenantId:ctx.ctx.tenant.id,userId:ctx.ctx.user.id,role:ctx.ctx.membership.role,authorizedFarmIds:ctx.farms.map(f=>f.id)})}
 async function candidates(ctx:AiContext,st:State){
  const rows=await prisma.animal.findMany({where:{tenantId:ctx.ctx.tenant.id,farmId:st.farmId!,inventoryStatus:"ACTIVE"},select:{id:true,internalCode:true,currentWeightKg:true,weightRecords:{orderBy:[{recordedAt:"desc"},{createdAt:"desc"}],take:1,select:{weightKg:true,recordedAt:true}}},take:5001});
@@ -42,21 +43,34 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string):Promis
    if(st.stage==="threshold")reply="Trabajaremos con "+displayFarm(ctx,st)+". ¿Cuál es el peso mínimo por animal: 450 kilos u otro? Usaré el último peso registrado, no una proyección.";
   }else if(st.stage==="threshold"){
    const kg=num(normalized);
-   if(!Number.isFinite(kg)||kg<1||kg>2000)reply="Dime el peso mínimo por animal, por ejemplo: 450 kilos.";
+   if(kg===null||!Number.isFinite(kg)||kg<1||kg>2000)reply="Dime el peso mínimo por animal, por ejemplo: 450 kilos.";
    else{st.minKg=kg;const a=await candidates(ctx,st);if(!a.length){reply="No hay animales con último pesaje de "+kg+" kilos o más en "+displayFarm(ctx,st)+". Dime otro peso mínimo."; }
-   else{st.stage="quantity";reply="En "+displayFarm(ctx,st)+" encontré "+a.length+" animales con último pesaje de "+kg+" kilos o más. ¿Cuántos quieres incluir en la guía? Puedes decir todos o una cantidad. Los elegiré de mayor a menor peso.";}}
+   else{st.stage="quantity";reply="En "+displayFarm(ctx,st)+" encontré "+a.length+" animales con último pesaje de "+kg+" kilos o más. ¿Cuántos animales o cuántos kilos totales quieres incluir en la guía? Por ejemplo: 15 animales, todos o aproximadamente 8.000 kilos.";}}
   }else if(st.stage==="quantity"){
    const a=await candidates(ctx,st);
-   const count=/\b(todos|todas)\b/.test(normalized)?a.length:Math.floor(num(normalized));
-   if(!Number.isSafeInteger(count)||count<1||count>a.length){reply="Puedes seleccionar entre 1 y "+a.length+" animales. ¿Cuántos deseas incluir?";}
-   else{const selected=a.slice(0,count);st.quantity=count;st.ids=selected.map(x=>x.id);st.kg=selected.reduce((s,x)=>s+x.kg,0);st.stage="buyer";reply="Seleccioné "+count+" animales de "+displayFarm(ctx,st)+" con "+st.kg.toLocaleString("es-VE")+" kilos medidos en total. ¿A nombre de quién preparo la guía? Puedes indicar 'por definir' si aún no tienes comprador."; }
+   const selectionRequest=parseSaleSelection(normalized);
+   if(!selectionRequest)reply="Dime cuántos animales o cuántos kilos necesitas en total. Por ejemplo: 12 animales, todos o 8.000 kilos.";
+   else{
+    let selection;
+    try{selection=selectSaleAnimals(a,selectionRequest);}
+    catch{reply="Elige entre 1 y 100 animales, o indica los kilos totales que quieres alcanzar.";}
+    if(selection){
+     if(!selection.targetReachable){
+      reply="El peso solicitado de "+selection.targetKg!.toLocaleString("es-VE")+" kg supera los "+selection.maxAvailableKg.toLocaleString("es-VE")+" kg que puedo preparar con los animales disponibles de esta finca (hasta 100 por guía). Prueba con menos kilos, otro peso mínimo o una cantidad.";
+     }else{
+      st.quantity=selection.count;st.ids=selection.animals.map(x=>x.id);st.kg=selection.totalKg;st.targetKg=selection.targetKg??undefined;st.differenceKg=selection.differenceKg??undefined;
+      st.stage="buyer";
+      reply="Seleccioné "+selection.count+" animales de "+displayFarm(ctx,st)+" con "+selection.totalKg.toLocaleString("es-VE")+" kg de últimos pesajes."+(selection.targetKg===null?"":"\nObjetivo: "+selection.targetKg.toLocaleString("es-VE")+" kg. Diferencia: "+(selection.differenceKg!>=0?"+":"")+selection.differenceKg!.toLocaleString("es-VE")+" kg.")+"\nEl peso de venta definitivo debe verificarse. ¿A nombre de quién preparo la guía? Puedes indicar 'por definir'.";
+     }
+    }
+   }
   }else if(st.stage==="buyer"){
    if(message.trim().length<2||message.length>150)reply="Indica un nombre de comprador o escribe 'por definir'.";
    else{st.buyer=message.trim();st.stage="price";reply="¿Cuál es el precio por kilo en dólares? Por ejemplo, 2,50. Si todavía no está acordado, responde 0 y el comprobante quedará con precio pendiente de definir."; }
   }else if(st.stage==="price"){
    const price=num(normalized);
-   if(!Number.isFinite(price)||price<0||price>100000)reply="Indica el precio por kilo, por ejemplo 2,50 dólares, o 0 si está pendiente.";
-   else{st.price=Math.round(price*100);st.currency="USD";st.stage="review";reply="Revisa la guía interna:\nFinca: "+displayFarm(ctx,st)+"\nAnimales: "+st.quantity+"\nPeso total del último pesaje: "+st.kg!.toLocaleString("es-VE")+" kg\nPeso mínimo: "+st.minKg+" kg\nComprador: "+st.buyer+"\nPrecio: "+price.toLocaleString("es-VE")+" USD/kg\n\n¿Autorizas CREAR EL BORRADOR y su PDF? Responde 'sí, crear borrador' o 'cancelar'. Todavía no se vende ni descuenta ningún animal."; }
+   if(price===null||!Number.isFinite(price)||price<0||price>100000)reply="Indica el precio por kilo, por ejemplo 2,50 dólares, o 0 si está pendiente.";
+   else{st.price=Math.round(price*100);st.currency="USD";st.stage="review";reply="Revisa la guía interna:\nFinca: "+displayFarm(ctx,st)+"\nAnimales: "+st.quantity+"\nPeso total del último pesaje: "+st.kg!.toLocaleString("es-VE")+" kg\nPeso mínimo: "+st.minKg+" kg\nComprador: "+st.buyer+"\nPrecio: "+price.toLocaleString("es-VE")+" USD/kg"+(st.targetKg?"\nObjetivo: "+st.targetKg.toLocaleString("es-VE")+" kg; diferencia: "+(st.differenceKg!>=0?"+":"")+st.differenceKg!.toLocaleString("es-VE")+" kg":"")+"\n\n¿Autorizas CREAR EL BORRADOR y su PDF? Responde 'sí, crear borrador' o 'cancelar'. Todavía no se vende ni descuenta ningún animal."; }
   }else if(st.stage==="review"){
    if(!yes.test(normalized)&&!/\b(si|sí)\b.*\b(crear|generar|borrador|guia)\b/.test(normalized))reply="Para guardar el borrador, responde 'sí, crear borrador'. O escribe 'cancelar'. No se descontará ganado.";
    else{
@@ -64,7 +78,7 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string):Promis
     const ids=st.ids||[];
     if(ids.length!==st.quantity||ids.some(id=>!current.some(a=>a.id===id))){st.stage="quantity";reply="Cambió el inventario o los pesajes. Debemos revisar nuevamente la cantidad antes de crear la guía.";}
     else{
-     const result=await makeSaleDraft(ctx.ctx,{farmId:st.farmId!,animalIds:ids,buyerName:st.buyer!,pricePerKgCents:st.price!,currency:"USD",requestKey:st.key,saleDate:new Date().toISOString(),notes:"Borrador creado por GanadIA AI. Revisar datos, pesos y documentos antes de autorizar la venta."});
+     const result=await makeSaleDraft(ctx.ctx,{farmId:st.farmId!,animalIds:ids,buyerName:st.buyer!,pricePerKgCents:st.price!,currency:"USD",requestKey:st.key,saleDate:new Date().toISOString(),notes:"Borrador creado por GanadIA AI. "+(st.targetKg?"Objetivo: "+st.targetKg+" kg. Diferencia: "+st.differenceKg+" kg. ":"")+"Revisar datos, pesos y documentos antes de autorizar la venta."});
      draft={id:result.id,url:"/api/livestock-sales/"+encodeURIComponent(result.id)+"/receipt",count:ids.length,kg:st.kg!};
      reply="Listo. Creé tu comprobante INTERNO de venta en BORRADOR para "+ids.length+" animales de "+displayFarm(ctx,st)+". Puedes descargarlo aquí, revisarlo y autorizar la venta posteriormente. No se descontó ganado. No es un permiso INSAI.";
      st=null;
