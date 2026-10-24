@@ -18,7 +18,12 @@ export async function GET(request: Request) {
   try {
     const before = new URL(request.url).searchParams.get("before");
     const page = await getGanadiaChatPage(ctx, before);
-    return reply({ ...page, farms: ctx.farms, name:ctx.ctx.user.name||null });
+    const pref=await prisma.ganadiaAiMemorySettings.findUnique({
+      where:{tenantId_userId:{tenantId:ctx.ctx.tenant.id,userId:ctx.ctx.user.id}},
+      select:{enabled:true,preferredName:true},
+    });
+    const displayName=pref?.enabled&&pref.preferredName?pref.preferredName:ctx.ctx.user.name;
+    return reply({ ...page, farms: ctx.farms, name:displayName||null });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_CHAT_CURSOR") {
       return reply({ error: "No se encontró esa página de la conversación." }, 400);
