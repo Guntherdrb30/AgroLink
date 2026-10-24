@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Sprout } from "lucide-react";
+import { Plus, Sprout, Sparkles } from "lucide-react";
 import { allowedFarmIds } from "@/lib/permissions/farm-access";
 import { listFarmsByTenant } from "@/server/repositories/farm-repository";
 import { isBusinessVerificationRequired } from "@/lib/config/business-verification";
@@ -35,7 +35,7 @@ export default async function FarmsPage({
           </p>
         </div>
         {canEdit && !showForm ? (
-          <Link href="/farms?new=1#nueva-finca" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#70572f] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#5b4625]">
+          <Link href="/farms/crear-con-ganadia" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#70572f] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#5b4625]">
             <Plus className="size-5" aria-hidden={true} /> Nueva finca
           </Link>
         ) : null}
@@ -49,12 +49,12 @@ export default async function FarmsPage({
             <div>
               <h2 className="text-xl font-bold text-[#203528]">Registrar finca</h2>
               <p className="mt-1 text-sm leading-6 text-[#708075]">
-                Completa los datos en tres pasos. Las fotografías son opcionales.
+                Puedes registrar manualmente o usar Crea tu Finca, nuestro asistente guiado.
               </p>
               {farms.length > 0 ? <Link className="mt-2 inline-block text-sm font-semibold text-[#826334] underline" href="/farms">Volver a mis fincas</Link> : null}
             </div>
           </div>
-          <FarmForm mode="create"/>
+          <div className="mb-5 rounded-2xl bg-[#edf4ea] p-5"><p className="font-bold text-[#23462e]">¿Prefieres que GanadIA organice tu finca contigo?</p><p className="mt-1 text-sm text-[#607662]">Responde preguntas sencillas y aprueba una configuración adaptada a tu actividad.</p><Link href="/farms/crear-con-ganadia" className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[#254c34] px-5 font-bold text-white"><Sparkles className="mr-2 size-4"/>Crear mi finca con GanadIA</Link></div><FarmForm mode="create"/>
         </section>
       ) : null}
       <FarmList
