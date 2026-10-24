@@ -218,6 +218,8 @@ model User {
   ganadiaMemorySettings    GanadiaAiMemorySettings[]
   ganadiaMemoryFacts       GanadiaAiMemoryFact[]
   ganadiaUsagePatterns     GanadiaAiUsagePattern[]
+  farmSetupSessions        FarmSetupSession[]
+  approvedFarmProfiles     FarmProductionProfile[]
   memberships              TenantMembership[]
   farmAccesses             TenantFarmAccess[]
   veterinaryProfiles       VeterinaryProfessionalProfile[]
@@ -253,6 +255,8 @@ model Tenant {
   ganadiaMemoryFacts     GanadiaAiMemoryFact[]
   ganadiaOrgMemories    GanadiaAiOrganizationMemory[]
   ganadiaUsagePatterns  GanadiaAiUsagePattern[]
+  farmSetupSessions FarmSetupSession[]
+  farmProductionProfiles FarmProductionProfile[]
   farmAccesses         TenantFarmAccess[]
   veterinaryProfiles  VeterinaryProfessionalProfile[]
   invitations          TenantInvitation[]
@@ -383,6 +387,8 @@ model Farm {
   livestockOperations LivestockOperation[]
   geoAreas            FarmGeoArea[]
   grazingPlans        FarmGrazingPlan[]
+  productionProfile   FarmProductionProfile?
+  guidedSetupSessions FarmSetupSession[]
   farmAccesses        TenantFarmAccess[]
   outgoingMovements   LivestockMovement[] @relation("MovementFromFarm")
   incomingMovements   LivestockMovement[] @relation("MovementToFarm")
@@ -1263,4 +1269,45 @@ model GanadiaAiUsagePattern {
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([tenantId, userId, patternKey])
+}
+
+model FarmSetupSession {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String
+  status         String   @default("COLLECTING") @db.VarChar(16)
+  step           String   @default("vision") @db.VarChar(24)
+  answers        Json     @default("{}")
+  messages       Json     @default("[]")
+  proposal       Json?
+  proposalSource String?  @db.VarChar(16)
+  version        Int      @default(0)
+  createdFarmId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdFarm    Farm?    @relation(fields: [createdFarmId], references: [id], onDelete: SetNull)
+  @@unique([tenantId, userId])
+  @@index([tenantId, status])
+}
+model FarmProductionProfile {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  farmId             String   @unique
+  purpose            String   @db.VarChar(24)
+  answers            Json
+  recommendedModules Json
+  futureModules      Json
+  recommendations    Json
+  warnings           Json
+  proposalSource     String   @db.VarChar(16)
+  approvedById       String
+  approvedAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  approvedBy         User     @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  @@index([tenantId, purpose])
 }
