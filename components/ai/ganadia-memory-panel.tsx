@@ -45,6 +45,18 @@ export function GanadiaMemoryPanel(){
   await call(API,"POST",{scope:"organization",content:companyNote,farmId:companyFarm||null});
   setCompanyNote("");
  }
+ async function suggestWithOpenAI(){
+  if(busy||!form.enabled||!form.learnFromChat)return;
+  if(!window.confirm("¿Quieres analizar tus consultas recientes con OpenAI? Utilizará el presupuesto piloto habilitado. Los recuerdos sugeridos no se guardan como preferencias activas hasta que los apruebes."))return;
+  setBusy(true);setNotice("");setError("");
+  try{
+   const res=await fetch(API+"/sugerencias",{method:"POST",cache:"no-store"});
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||"No se pudieron obtener sugerencias");
+   await refresh();setNotice(data.suggested?"OpenAI propuso "+data.suggested+" recuerdo(s). Revísalos antes de aprobar.":"No se encontraron preferencias estables nuevas.");
+  }catch(e){setError(e instanceof Error?e.message:"No se pudo analizar");}
+  finally{setBusy(false);}
+ }
  const canManage=profile?.canManageCompany??false;
  if(loading)return <p className="p-6 text-[#536e5b]">Cargando la memoria de GanadIA...</p>;
  if(!profile)return <p className="p-6 text-red-700">{error||"No se pudo abrir tu memoria."}</p>;
@@ -80,6 +92,8 @@ export function GanadiaMemoryPanel(){
   <section className="space-y-3 rounded-3xl border bg-white p-5 sm:p-6">
    <div className="flex items-center gap-2"><Sparkles className="size-5 text-[#557f56]"/><h2 className="text-xl font-bold text-[#244e33]">Lo que GanadIA recuerda</h2></div>
    <p className="text-sm text-[#687d6d]">Los recuerdos sugeridos no se usan hasta que tú los apruebes. Puedes editarlos o borrarlos en cualquier momento.</p>
+   <button disabled={busy||!form.enabled||!form.learnFromChat} onClick={()=>void suggestWithOpenAI()} className="min-h-11 rounded-xl border border-[#8eaf91] px-4 text-sm font-semibold text-[#285437] disabled:opacity-40"><Sparkles className="mr-2 inline size-4"/>Proponer recuerdos con OpenAI</button>
+   <p className="text-xs text-[#738373]">Opcional: analiza tus mensajes recientes con cargo al presupuesto piloto vigente. Nunca activa recuerdos automáticamente.</p>
    {profile.facts.length===0?<p className="rounded-xl bg-[#f5f8f4] p-4 text-sm">Todavía no hay recuerdos guardados.</p>:profile.facts.map(f=>
     <article key={f.id} className="space-y-2 rounded-xl border p-3">
      <div className="flex flex-wrap justify-between gap-2 text-xs text-[#6e816e]"><span>{f.status==="SUGGESTED"?"Sugerencia por aprobar":f.status==="ACTIVE"?"Recuerdo activo":"Descartado"} · {f.origin}</span><span>{f.farmId?profile.farms.find(x=>x.id===f.farmId)?.name||"Finca":"Personal general"}</span></div>
@@ -120,6 +134,7 @@ export function GanadiaMemoryPanel(){
   <section className="space-y-3 rounded-3xl border border-red-100 bg-white p-5 sm:p-6">
    <h2 className="flex items-center gap-2 text-lg font-bold text-[#244e33]"><ShieldCheck className="size-5"/>Privacidad y control</h2>
    <p className="text-sm text-[#687d6d]">Limpiar el chat no elimina los recuerdos aprobados. Si borras toda tu memoria se eliminan tus preferencias y patrones, pero no los registros del ERP ni los procedimientos oficiales de la empresa.</p>
+   <a href={API+"/exportar"} className="inline-flex min-h-11 items-center rounded-xl border border-[#a9baaa] px-4 text-sm font-semibold text-[#285437]">Exportar mis recuerdos (JSON)</a>
    <button disabled={busy} onClick={()=>{if(window.confirm("¿Eliminar TODOS tus recuerdos personales y patrones? Esta acción no se puede deshacer."))void call(API,"DELETE",{confirm:"BORRAR_TODA_MI_MEMORIA"})}} className="min-h-11 rounded-xl border border-red-300 px-4 text-sm font-semibold text-red-800 disabled:opacity-40"><Trash2 className="mr-2 inline size-4"/>Borrar toda mi memoria personal</button>
   </section>
  </main>;

@@ -1,5 +1,7 @@
 name: GanadIA pull request verification
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
