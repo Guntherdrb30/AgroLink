@@ -36,7 +36,7 @@ export async function GET(request:Request,{params}:Params){
   if(!asset.id)continue;
   try{
    const stored=await prisma.fileStorage.findFirst({where:{id:asset.id,tenantId:ctx.tenant.id,usage:asset.usage as "FARM_LOGO"|"FARM_IRON",visibility:"PRIVATE"}});
-   if(!stored||!stored.path.startsWith("agrolynk/tenants/"+ctx.tenant.id+"/private/"+asset.segment+"/"))continue;
+   if(!stored||stored.entityType!=="farm"||stored.entityId!==sale.farm.id||!stored.path.startsWith("agrolynk/tenants/"+ctx.tenant.id+"/private/farms/"))continue;
    const blob=await get(stored.path,{access:"private",token:process.env.BLOB_READ_WRITE_TOKEN});
    if(!blob||blob.statusCode!==200)continue;
    const bytes=new Uint8Array(await new Response(blob.stream).arrayBuffer());
@@ -58,7 +58,7 @@ export async function GET(request:Request,{params}:Params){
  txt("Documento interno. No autoriza movilizacion ni sustituye al INSAI/SIGESAI o factura fiscal.",35,668,7,false,MUTED,523);
  // QR with restricted, authenticated digital verification.
  if(sale.verificationToken){
-  const uri=new URL("/guias/verificar/"+sale.verificationToken,request.url).toString();
+  const uri=new URL("/verificar-guia/"+sale.verificationToken,request.url).toString();
   const code=qrcodegen.QrCode.encodeText(uri,qrcodegen.QrCode.Ecc.MEDIUM);
   const size=78,cell=size/(code.size+8),left=472,top=815;
   page.drawRectangle({x:left-2,y:top-size-2,width:size+4,height:size+4,color:WHITE});
@@ -109,5 +109,5 @@ export async function GET(request:Request,{params}:Params){
  smallNote("El QR abre un registro digital autenticado para usuarios con permiso sobre la finca.");
  footer();
  const bytes=await doc.save();
- return new Response(new Uint8Array(bytes),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="GanadIA-'+sale.number+'.pdf"',"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+ return new Response(new Uint8Array(bytes),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="GanadIA-GUIA-PREMIUM-'+sale.number+'.pdf"',"Cache-Control":"private, no-store, no-cache, max-age=0, must-revalidate","Pragma":"no-cache","Expires":"0","X-Content-Type-Options":"nosniff"}});
 }

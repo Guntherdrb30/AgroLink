@@ -146,7 +146,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
   {draft&&<section className="rounded-3xl border border-[#d6dfd2] bg-[#f1f6ef] p-4 sm:p-6">
    <h2 className="text-lg font-bold">Borrador {draft.number}</h2>
    <p className="mt-2 text-sm">{draft.items.length} animales · {Number(draft.totalWeightKg).toLocaleString("es-VE")} kg · {(draft.totalCents/100).toLocaleString("es-VE")} {draft.currency}</p>
-   <a href={"/api/livestock-sales/"+draft.id+"/receipt"} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[#29513a]"><FileDown className="size-4"/> Descargar comprobante PDF</a>
+   <a href={"/api/livestock-sales/"+draft.id+"/receipt?layout=premium-20261024-v2"} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-[#29513a]"><FileDown className="size-4"/> Descargar guía premium PDF · QR</a>
    <button disabled={pending} onClick={()=>void confirm()} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#275b3a] px-4 font-semibold text-white disabled:opacity-40"><CheckCircle2 className="size-5"/> Confirmar venta y descontar animales</button>
   </section>}
   <section className="space-y-3 rounded-3xl border bg-white p-4 sm:p-6">
@@ -154,7 +154,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
    {sales.length===0?<p className="text-sm text-[#6b7c70]">Todavía no hay ventas registradas.</p>:sales.map(s=><article key={s.id} className="space-y-2 border-b py-4">
     <p className="font-bold">{s.number} · {s.status==="DRAFT"?"Borrador":"Confirmada"}</p>
     <p className="text-sm">{s.buyerName} · {s._count.items} animales · {Number(s.totalWeightKg).toLocaleString("es-VE")} kg</p>
-    <a className="inline-flex items-center gap-2 text-sm font-semibold text-[#27593a]" href={"/api/livestock-sales/"+s.id+"/receipt"}><FileDown className="size-4"/> Comprobante interno PDF</a>
+    <a className="inline-flex items-center gap-2 text-sm font-semibold text-[#27593a]" href={"/api/livestock-sales/"+s.id+"/receipt?layout=premium-20261024-v2"} target="_blank" rel="noopener noreferrer"><FileDown className="size-4"/> Guía premium PDF · QR</a>
     {s.insaiPermitNumber?<p className="text-xs text-[#5b745f]">Soporte INSAI: {s.insaiPermitNumber} · <a className="font-bold underline" href={"/api/livestock-sales/"+s.id+"/insai/file"}>Descargar soporte</a></p>:canEdit?<div className="space-y-2 rounded-xl bg-[#f7faf6] p-3">
      <p className="text-xs text-[#647667]">Adjuntar permiso oficial INSAI (opcional, separado del comprobante interno).</p>
      <input className={input} placeholder="Número de la guía oficial" value={permitNo} onChange={e=>setPermitNo(e.target.value)} aria-label="Número de guía INSAI"/>
