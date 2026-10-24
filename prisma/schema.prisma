@@ -1108,6 +1108,7 @@ model GanadiaAiConversation {
   userId      String
   accessHash  String   @db.VarChar(64)
   generation  Int      @default(0)
+  saleFlow    Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)

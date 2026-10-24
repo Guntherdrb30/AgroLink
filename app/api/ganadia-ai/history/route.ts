@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { makeAiContext } from "@/lib/ai/ganadia-tools";
 import { allowedAiTools } from "@/lib/ai/ganadia-policy";
 import { clearGanadiaChat, getGanadiaChatPage } from "@/lib/ai/ganadia-memory";
+import { prisma } from "@/lib/db/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export async function DELETE(request: Request) {
   }
   try {
     await clearGanadiaChat(ctx);
+    await prisma.ganadiaAiConversation.updateMany({where:{tenantId:ctx.ctx.tenant.id,userId:ctx.ctx.user.id},data:{saleFlow:{set:null}}});
     return reply({ cleared: true, messages: [] });
   } catch (error) {
     console.error("GanadIA history clear failed", error instanceof Error ? error.name : "unknown");

@@ -9,6 +9,7 @@ import { invokeGanadiaPilotedOpenAI } from "@/lib/ai/ganadia-openai";
 import { GanadiaPilotBudgetError } from "@/lib/ai/ganadia-budget";
 import { inferGanadiaReadTools } from "@/lib/ai/ganadia-intent";
 import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-memory";
+import { handleGanadiaSaleFlow } from "@/lib/ai/ganadia-sale-flow";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const send = (value: unknown, status = 200) =>
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
     keyPresent: Boolean(process.env.OPENAI_API_KEY),
   });
   try {
+    if(message){const flow=await handleGanadiaSaleFlow(ctx,message);if(flow)return send({...flow,farms:ctx.farms});}
     const chat = await beginGanadiaChatTurn(ctx);
     // The old deterministic assistant stays available without billable AI.
     if (!generative) {

@@ -14,7 +14,7 @@ type ChatHistory = {
   hasMore: boolean;
   nextCursor: string | null;
 };
-type Reply = { reply: string; farms?: Farm[]; mode?: "asistido" | "generativo" };
+type Reply = { reply: string; farms?: Farm[]; mode?: "asistido" | "generativo" | "workflow"; saleDraft?:{id:string;url:string;count:number;kg:number} };
 
 const HELLO = "¡Hola! Soy GanadIA. Pregúntame por tu ganado, tus fincas o su administración. Podemos conversar con palabras sencillas.";
 const CHAT_PATH = "/api/ganadia-ai/chat";
@@ -31,6 +31,7 @@ export function GanadiaAssistant({
   const [messages, setMessages] = useState<Msg[]>([]);
   const [message, setMessage] = useState("");
   const [offerSales, setOfferSales] = useState(false);
+  const [saleDraft,setSaleDraft]=useState<{id:string;url:string;count:number;kg:number}|null>(null);
   const [farmId, setFarmId] = useState("");
   const [farms, setFarms] = useState<Farm[]>([]);
   const [busy, setBusy] = useState(false);
@@ -155,6 +156,8 @@ export function GanadiaAssistant({
       const data = await response.json() as Reply & { error?: string };
       if (!response.ok) throw new Error(data.error || "No se pudo completar la consulta.");
       if (Array.isArray(data.farms)) setFarms(data.farms);
+      if(data.saleDraft)setSaleDraft(data.saleDraft);
+      if(data.mode==="workflow")setOfferSales(false);
       if (data.mode === "asistido" || data.mode === "generativo") setMode(data.mode);
       setMessages(existing => [...existing, { by: "assistant", text: data.reply }]);
     } catch (error) {
@@ -180,6 +183,7 @@ export function GanadiaAssistant({
       setConfirmClear(false);
       setOptionsOpen(false);
       setMode(null);
+      setSaleDraft(null);
     } catch (error) {
       setErrorText(error instanceof Error ? error.message : "No se pudo limpiar la conversación.");
       setConfirmClear(false);
@@ -287,6 +291,7 @@ export function GanadiaAssistant({
                       {entry.text}
                     </div>
                   ))}
+                  {saleDraft && <div className="ml-auto flex w-fit flex-col gap-2 rounded-xl border border-[#b7ceb6] bg-[#e9f2e7] p-3 text-sm font-semibold text-[#244f34]"><a className="underline" href={saleDraft.url}>Descargar guía interna PDF · {saleDraft.count} animales</a><a className="underline" href="/ventas">Revisar borrador y autorización en Ventas</a></div>}
                   {offerSales && !busy && (
                     <a href="/ventas" className="ml-auto flex w-fit items-center rounded-xl border border-[#b7ceb6] bg-[#e9f2e7] px-4 py-3 text-sm font-semibold text-[#244f34]">
                       Preparar comprobante interno de venta
