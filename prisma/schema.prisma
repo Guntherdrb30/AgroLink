@@ -215,6 +215,9 @@ model User {
   accounts                 Account[]
   sessions                 Session[]
   ganadiaAiConversations   GanadiaAiConversation[]
+  ganadiaMemorySettings    GanadiaAiMemorySettings[]
+  ganadiaMemoryFacts       GanadiaAiMemoryFact[]
+  ganadiaUsagePatterns     GanadiaAiUsagePattern[]
   memberships              TenantMembership[]
   farmAccesses             TenantFarmAccess[]
   veterinaryProfiles       VeterinaryProfessionalProfile[]
@@ -246,6 +249,10 @@ model Tenant {
   defaultUsers         User[]                    @relation("DefaultTenant")
   memberships          TenantMembership[]
   ganadiaAiConversations GanadiaAiConversation[]
+  ganadiaMemorySettings  GanadiaAiMemorySettings[]
+  ganadiaMemoryFacts     GanadiaAiMemoryFact[]
+  ganadiaOrgMemories    GanadiaAiOrganizationMemory[]
+  ganadiaUsagePatterns  GanadiaAiUsagePattern[]
   farmAccesses         TenantFarmAccess[]
   veterinaryProfiles  VeterinaryProfessionalProfile[]
   invitations          TenantInvitation[]
@@ -1195,4 +1202,65 @@ model LivestockSaleItem {
   animal Animal @relation(fields:[animalId],references:[id],onDelete:Restrict)
   @@unique([saleId,animalId])
   @@index([tenantId,animalId])
+}
+
+
+/// Personal memory is opt-in and isolated by authenticated user and tenant.
+model GanadiaAiMemorySettings {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String
+  enabled        Boolean  @default(false)
+  learnFromChat  Boolean  @default(false)
+  preferredName  String?  @db.VarChar(80)
+  responseStyle  String   @default("BALANCED") @db.VarChar(16)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, userId])
+  @@index([userId, updatedAt])
+}
+model GanadiaAiMemoryFact {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String
+  farmId         String?
+  kind           String   @db.VarChar(40)
+  content        String   @db.VarChar(350)
+  status         String   @default("SUGGESTED") @db.VarChar(20)
+  origin         String   @default("MANUAL") @db.VarChar(20)
+  evidenceCount  Int      @default(1)
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([tenantId, userId, status])
+  @@index([tenantId, userId, farmId])
+}
+model GanadiaAiOrganizationMemory {
+  id             String   @id @default(cuid())
+  tenantId       String
+  farmId         String?
+  content        String   @db.VarChar(350)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@index([tenantId, farmId])
+}
+model GanadiaAiUsagePattern {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String
+  patternKey     String   @db.VarChar(50)
+  occurrences    Int      @default(0)
+  activeDays     Int      @default(0)
+  lastDay        String   @default("") @db.VarChar(10)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, userId, patternKey])
 }
