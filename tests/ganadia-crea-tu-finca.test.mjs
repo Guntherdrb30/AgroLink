@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {purposeFromText,parseReply,setupSchema,plan} from "../lib/farms/crea-tu-finca.ts";
+import {purposeFromText,parseReply,extractDeclaredSetupFacts,setupSchema,plan} from "../lib/farms/crea-tu-finca.ts";
 test("doble propósito is about production, not animal gender",()=>{
  assert.equal(purposeFromText("Tengo finca de doble propósito, vacas y toros"),"DOBLE_PROPOSITO");
  assert.equal(purposeFromText("50 hembras y machos"),null);
@@ -17,4 +17,10 @@ test("no phantom animal or milk production modules",()=>{
  assert.equal(p.modules.includes("Producción y venta diaria de leche"),false);
  assert.ok(p.futureModules.some(x=>x.includes("leche")));
  assert.equal(Object.hasOwn(p,"animals"),false);
+});
+
+test("explicit opening statement pre-fills only confirmed production facts",()=>{
+ assert.deepEqual(extractDeclaredSetupFacts("Tengo una finca de 200 hectáreas en Barinas de doble propósito y 50 vacas"),{purpose:"DOBLE_PROPOSITO",hectares:200});
+ assert.deepEqual(extractDeclaredSetupFacts("Tengo 50 vacas, cuatro toros y varios potreros"),{});
+ assert.deepEqual(extractDeclaredSetupFacts("Aún estoy evaluando mis hectáreas, pero quiero leche"),{purpose:"LECHERIA"});
 });

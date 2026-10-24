@@ -2,7 +2,7 @@ import {NextResponse} from "next/server";
 import {getCurrentTenant} from "@/lib/auth/session";
 import {prisma} from "@/lib/db/prisma";
 import {z} from "zod";
-import {ORDER,QUESTIONS,parseReply,setupSchema,plan,type SetupStep} from "@/lib/farms/crea-tu-finca";
+import {ORDER,QUESTIONS,parseReply,extractDeclaredSetupFacts,setupSchema,plan,type SetupStep} from "@/lib/farms/crea-tu-finca";
 import {Prisma} from "@prisma/client";
 export const dynamic="force-dynamic";export const runtime="nodejs";
 const send=(v:unknown,s=200)=>NextResponse.json(v,{status:s,headers:{"Cache-Control":"private, no-store"}});
@@ -63,7 +63,14 @@ export async function POST(request:Request){
    const value=parseReply(step as SetupStep,input.text);
    if(value===undefined)return {code:422,data:{error:step==="hectares"?"Indica la cantidad de hectáreas o escribe No sé.":step==="purpose"?"Elige cría, engorde, leche, doble propósito, agricultura o agropecuaria.":"Por favor, amplía o corrige tu respuesta."}};
    a[step]=value;
-   const next=input.action==="answer"?ORDER[ORDER.indexOf(r.step as SetupStep)+1]??"review":"review";
+   if(step==="vision"&&input.action==="answer"){
+    const declared=extractDeclaredSetupFacts(input.text);
+    if(declared.purpose!==undefined&&a.purpose===undefined)a.purpose=declared.purpose;
+    if(declared.hectares!==undefined&&a.hectares===undefined)a.hectares=declared.hectares;
+   }
+   const next=input.action==="answer"
+    ? ORDER.slice(ORDER.indexOf(r.step as SetupStep)+1).find(k=>!(k in a))??"review"
+    : "review";
    const complete=next==="review";
    if(complete&&!setupSchema.safeParse(a).success)return {code:422,data:{error:"Faltan datos para completar la propuesta."}};
    const p=complete?plan(setupSchema.parse(a)):null;

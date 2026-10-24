@@ -36,6 +36,21 @@ export function purposeFromText(text:string):SetupAnswers["purpose"]|null {
  if(/\b(agricultura|cultivos|siembra|cosecha)\b/.test(t))return"AGRICULTURA";
  return null;
 }
+/**
+ * Conservative extraction of explicitly declared setup facts.
+ * Inferred fields remain editable and require human approval.
+ */
+export function extractDeclaredSetupFacts(vision:string):Partial<SetupAnswers>{
+ const text=vision.trim(),result:Partial<SetupAnswers>={};
+ const purpose=purposeFromText(text);
+ if(purpose)result.purpose=purpose;
+ const match=clean(text).match(/\b(\d{1,7}(?:[.,]\d{1,2})?)\s*(?:hectareas|hectarea|ha)\b/);
+ if(match){
+  const n=Number(match[1].replace(",","."));
+  if(Number.isFinite(n)&&n>0&&n<=10_000_000)result.hectares=n;
+ }
+ return result;
+}
 export function parseReply(step:SetupStep,message:string):unknown {
  const m=message.trim();
  if(step==="hectares"){
