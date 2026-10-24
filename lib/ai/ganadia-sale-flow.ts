@@ -4,10 +4,11 @@ import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-me
 import { ganadiaConversationScope } from "@/lib/ai/ganadia-memory-policy";
 import { makeSaleDraft } from "@/server/services/livestock-sale-service";
 import type { AiContext } from "@/lib/ai/ganadia-tools";
+import { extractTargetKilograms, wantsFarmComparison, acceptsRecommendedFarm, compareAuthorizedFarmCapacity } from "@/lib/ai/ganadia-farm-capacity";
 import { numberFromText, parseSaleSelection, selectSaleAnimals } from "@/lib/ai/ganadia-sale-selection";
 
 type Stage = "farm"|"threshold"|"quantity"|"buyer"|"price"|"review";
-type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;targetKg?:number;differenceKg?:number;key:string};
+type State = {stage:Stage;farmId?:string;minKg?:number;quantity?:number;buyer?:string;price?:number;currency?:"USD"|"VES";ids?:string[];kg?:number;targetKg?:number;differenceKg?:number;suggestedFarmId?:string;key:string};
 const normalize=(s:string)=>s.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 const start=/\b(guia|comprobante|documento|preparar venta|quiero vender|vender ganado|hazme la guia|sacar la guia)\b/;
 const cancel=/^(cancelar|salir|detener|anular|olvidar la guia)$/;
@@ -15,19 +16,19 @@ const yes=/^(si|sí|confirmo|autorizo|crear|genera|generar|crear borrador|genera
 const num=(s:string)=>numberFromText(s); 
 function scope(ctx:AiContext){return ganadiaConversationScope({tenantId:ctx.ctx.tenant.id,userId:ctx.ctx.user.id,role:ctx.ctx.membership.role,authorizedFarmIds:ctx.farms.map(f=>f.id)})}
 async function candidates(ctx:AiContext,st:State){
- const rows=await prisma.animal.findMany({where:{tenantId:ctx.ctx.tenant.id,farmId:st.farmId!,inventoryStatus:"ACTIVE"},select:{id:true,internalCode:true,currentWeightKg:true,weightRecords:{orderBy:[{recordedAt:"desc"},{createdAt:"desc"}],take:1,select:{weightKg:true,recordedAt:true}}},take:5001});
+ const rows=await prisma.animal.findMany({where:{tenantId:ctx.ctx.tenant.id,farmId:st.farmId!,inventoryStatus:"ACTIVE"},select:{id:true,internalCode:true,currentWeightKg:true,weightRecords:{where:{recordedAt:{lte:new Date()}},orderBy:[{recordedAt:"desc"},{createdAt:"desc"}],take:1,select:{weightKg:true,recordedAt:true}}},take:5001});
  if(rows.length>5000)throw Error("TOO_MANY_ANIMALS");
  return rows.map(a=>({id:a.id,code:a.internalCode,kg:Number(a.weightRecords[0]?.weightKg??a.currentWeightKg??0),measured:!!a.weightRecords[0]}))
  .filter(a=>a.measured&&a.kg>0&&a.kg>=(st.minKg||1))
  .sort((a,b)=>b.kg-a.kg||a.code.localeCompare(b.code));
 }
 function displayFarm(ctx:AiContext,st:State){return ctx.farms.find(f=>f.id===st.farmId)?.name||"Finca"}
-export async function handleGanadiaSaleFlow(ctx:AiContext,message:string):Promise<null|{reply:string;saleDraft?:{id:string;url:string;count:number;kg:number};mode:"workflow"}>{
+export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,defaultMinKg=450):Promise<null|{reply:string;saleDraft?:{id:string;url:string;count:number;kg:number};mode:"workflow"}>{
  const chat=await beginGanadiaChatTurn(ctx);
  const record=await prisma.ganadiaAiConversation.findUnique({where:{id:chat.id},select:{saleFlow:true}});
  let st=(record?.saleFlow&&typeof record.saleFlow==="object"&&!Array.isArray(record.saleFlow))?record.saleFlow as State:null;
  const normalized=normalize(message.trim()).replace(/[.!?]+$/,"");
- if(!st&&!start.test(normalized))return null;
+ if(!st&&!start.test(normalized) && !(wantsFarmComparison(normalized)&&extractTargetKilograms(message,chat.history)!==null&&/\b(finca|fincas|ganado|guia|venta)\b/.test(normalized)))return null;
  if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER"].includes(ctx.ctx.membership.role)){
    return {reply:"Tu perfil puede consultar ganado, pero no preparar documentos de venta. Pide apoyo al responsable de la finca.",mode:"workflow"};
  }
@@ -36,11 +37,76 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string):Promis
  else{
   if(!st)st={stage:"farm",key:crypto.randomUUID()};
   if(st.stage==="farm"){
-   const chosen=ctx.farms.find(f=>normalized.includes(normalize(f.name))||message===f.id);
-   if(chosen){st.farmId=chosen.id;st.stage="threshold";}
-   else if(ctx.farms.length===1){st.farmId=ctx.farms[0].id;st.stage="threshold";}
-   else{reply="Claro. Vamos a preparar tu guía interna. ¿De cuál finca quieres sacar ganado? "+ctx.farms.map(f=>f.name).join(" o ")+". Si necesitas ganado de ambas, hacemos una guía por finca.";}
-   if(st.stage==="threshold")reply="Trabajaremos con "+displayFarm(ctx,st)+". ¿Cuál es el peso mínimo por animal: 450 kilos u otro? Usaré el último peso registrado, no una proyección.";
+   // Recover goals from previous user turns in an existing saved conversation,
+   // e.g. "8.000 kilos" followed by "revisa cuál finca los tiene".
+   const rememberedGoal=extractTargetKilograms(message,chat.history);
+   if(rememberedGoal!==null)st.targetKg=rememberedGoal;
+   const namesInMessage=ctx.farms.filter(f=>normalized.includes(normalize(f.name))||message===f.id);
+   const comparisonRequested=wantsFarmComparison(normalized) ||
+     (st.targetKg!==undefined && namesInMessage.length===0 && !acceptsRecommendedFarm(message));
+   const selectedFarm=namesInMessage.length===1 && !comparisonRequested
+     ? namesInMessage[0]
+     : namesInMessage.length===1 && !wantsFarmComparison(normalized)
+       ? namesInMessage[0]
+       : st.suggestedFarmId && acceptsRecommendedFarm(message)
+         ? ctx.farms.find(f=>f.id===st.suggestedFarmId)
+         : ctx.farms.length===1 && !comparisonRequested
+           ? ctx.farms[0]
+           : undefined;
+   if(selectedFarm){
+    st.farmId=selectedFarm.id;
+    st.suggestedFarmId=undefined;
+    if(st.targetKg!==undefined){
+     if(st.minKg===undefined)st.minKg=defaultMinKg;
+     const eligible=await candidates(ctx,st);
+     const proposal=selectSaleAnimals(eligible,{kind:"targetKg",targetKg:st.targetKg});
+     if(!proposal.targetReachable){
+      st.farmId=undefined;
+      reply="Con mínimo "+st.minKg+" kg, "+selectedFarm.name+" tiene "+proposal.maxAvailableKg.toLocaleString("es-VE")+" kg disponibles para una guía. No llega a tu objetivo de "+st.targetKg.toLocaleString("es-VE")+" kg. ¿Quieres que revise las otras fincas o prefieres cambiar el objetivo?";
+     }else{
+      st.quantity=proposal.count;st.ids=proposal.animals.map(a=>a.id);st.kg=proposal.totalKg;
+      st.differenceKg=proposal.differenceKg??undefined;
+      st.stage="buyer";
+      reply="Perfecto. Para "+selectedFarm.name+" seleccioné "+proposal.count+" animales de al menos "+st.minKg+" kg, sumando "+proposal.totalKg.toLocaleString("es-VE")+" kg según sus últimos pesajes. Objetivo: "+st.targetKg.toLocaleString("es-VE")+" kg; diferencia: "+(proposal.differenceKg!>=0?"+":"")+proposal.differenceKg!.toLocaleString("es-VE")+" kg.\n¿A nombre de quién preparo la guía? Aún no se ha vendido ni descontado ganado.";
+     }
+    }else{
+     st.stage="threshold";
+     reply="Trabajaremos con "+selectedFarm.name+". ¿Cuál es el peso mínimo por animal: 450 kilos u otro? Usaré el último peso registrado, no una proyección.";
+    }
+   }else if(st.targetKg!==undefined && ctx.farms.length>0 &&
+     (comparisonRequested || (st.suggestedFarmId && !selectedFarm))){
+    const minimum=Number.isFinite(defaultMinKg)&&defaultMinKg>=1&&defaultMinKg<=2000
+      ?defaultMinKg:450;
+    if(st.minKg===undefined)st.minKg=minimum;
+    const pools=await Promise.all(ctx.farms.map(async farm=>{
+      const herd=await candidates(ctx,{...st,farmId:farm.id});
+      return {id:farm.id,name:farm.name,animals:herd};
+    }));
+    const result=compareAuthorizedFarmCapacity(pools,st.targetKg);
+    st.suggestedFarmId=result.recommendedId??undefined;
+    const format=(n:number)=>n.toLocaleString("es-VE",{maximumFractionDigits:2});
+    const lines=result.farms.map(f=>f.name+": "+f.count+" animales de al menos "+st.minKg+
+      " kg, "+format(f.availableKg)+" kg disponibles."+
+      (f.canMeetTarget?" Sí alcanza.":" No alcanza."));
+    if(result.recommendedId){
+      const best=result.farms.find(f=>f.id===result.recommendedId)!;
+      const difference=best.proposal.differenceKg??0;
+      reply="Revisé tus fincas para una guía interna de "+format(st.targetKg)+" kg, usando un mínimo de "+st.minKg+" kg por animal según el último pesaje.\n"+
+        lines.join("\n")+
+        "\n\nTe recomiendo "+best.name+". Puedo preseleccionar "+best.proposal.count+
+        " animales que suman "+format(best.proposal.totalKg)+" kg"+
+        " (diferencia "+(difference>=0?"+":"")+format(difference)+" kg). "+
+        "¿Seguimos con "+best.name+"? Responde 'sí' o elige otra finca. Si quieres cambiar el peso mínimo, dímelo.";
+    }else{
+      reply="Revisé tus fincas para "+format(st.targetKg)+" kg, con mínimo "+st.minKg+
+        " kg por animal.\n"+lines.join("\n")+
+        "\nNinguna finca alcanza ese total por separado. Podemos bajar el objetivo o el peso mínimo; no mezclaré animales de distintas fincas en una sola guía.";
+    }
+   }else{
+    reply="Claro. Vamos a preparar tu guía interna. ¿De cuál finca quieres sacar ganado? "+
+      ctx.farms.map(f=>f.name).join(" o ")+
+      ". Si quieres, también puedo revisar cuál finca tiene suficiente ganado para los kilos que necesitas.";
+   }
   }else if(st.stage==="threshold"){
    const kg=num(normalized);
    if(kg===null||!Number.isFinite(kg)||kg<1||kg>2000)reply="Dime el peso mínimo por animal, por ejemplo: 450 kilos.";
