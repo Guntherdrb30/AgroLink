@@ -14,7 +14,7 @@ async function context(){
  const ctx=await makeAiContext();
  return ctx&&allowedAiTools(ctx.ctx.membership.role).length?ctx:null;
 }
-async function body(request:Request):Promise<any>{
+async function body(request:Request):Promise<Record<string,unknown>>{
  if(!request.headers.get("content-type")?.startsWith("application/json"))throw Error("MEMORY_BAD_REQUEST");
  const raw=await request.text();
  if(!raw||raw.length>6500)throw Error("MEMORY_BAD_REQUEST");

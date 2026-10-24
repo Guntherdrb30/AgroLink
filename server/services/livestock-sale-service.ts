@@ -82,7 +82,7 @@ export async function confirmInternalSale(ctx:GanadiaContext,id:string,confirm:b
  const existing=await loadSale(ctx,id);if(!existing)throw Error("SALE_NOT_FOUND");
  await assertFarm(ctx,existing.farmId);
  return prisma.$transaction(async tx=>{
-  const locked=await tx.$queryRaw(Prisma.sql(["SELECT \"id\" FROM \"LivestockSale\" WHERE \"id\"=", " AND \"tenantId\"=", " FOR UPDATE"] as any,id,ctx.tenant.id));
+  const locked=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT "id" FROM "LivestockSale" WHERE "id"=${id} AND "tenantId"=${ctx.tenant.id} FOR UPDATE`);
   if(!Array.isArray(locked)||!locked.length)throw Error("SALE_NOT_FOUND");
   const sale=await tx.livestockSale.findUnique({where:{id},include:{items:true}});
   if(!sale||sale.tenantId!==ctx.tenant.id)throw Error("SALE_NOT_FOUND");
