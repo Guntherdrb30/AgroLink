@@ -28,6 +28,24 @@ export async function GET(request:Request,{params}:Params){
  function grid(fields:Array<[string,string]>,cols=2){
   for(let i=0;i<fields.length;i+=cols){if(y<100)next();if(cols===2&&fields[i+1])duo(fields[i][0],fields[i][1],fields[i+1][0],fields[i+1][1]);else pair(fields[i][0],fields[i][1]);}
  }
+ // Private company imagery: only verified, tenant-owned farm assets.
+ for(const asset of [
+  {id:sale.farm.logoFileId,usage:"FARM_LOGO",segment:"farms/logos",x:176},
+  {id:sale.farm.ironFileId,usage:"FARM_IRON",segment:"farms/irons",x:409},
+ ]){
+  if(!asset.id)continue;
+  try{
+   const stored=await prisma.fileStorage.findFirst({where:{id:asset.id,tenantId:ctx.tenant.id,usage:asset.usage as "FARM_LOGO"|"FARM_IRON",visibility:"PRIVATE"}});
+   if(!stored||!stored.path.startsWith("agrolynk/tenants/"+ctx.tenant.id+"/private/"+asset.segment+"/"))continue;
+   const blob=await get(stored.path,{access:"private",token:process.env.BLOB_READ_WRITE_TOKEN});
+   if(!blob||blob.statusCode!==200)continue;
+   const bytes=new Uint8Array(await new Response(blob.stream).arrayBuffer());
+   const img=stored.mimeType==="image/png"?await doc.embedPng(bytes):stored.mimeType==="image/jpeg"?await doc.embedJpg(bytes):null;
+   if(!img)continue;
+   const scaled=img.scale(1);const ratio=Math.min(63/scaled.width,55/scaled.height);
+   page.drawImage(img,{x:asset.x,y:770,width:scaled.width*ratio,height:scaled.height*ratio});
+  }catch{/* An invalid farm logo must not prevent the guide PDF. */}
+ }
  // Header and official-document separation.
  page.drawRectangle({x:0,y:H-10,width:W,height:10,color:GREEN});
  txt("GanadIA",35,798,25,true,GREEN,180);txt("TECNOLOGIA GANADERA",36,780,8,false,MUTED);
