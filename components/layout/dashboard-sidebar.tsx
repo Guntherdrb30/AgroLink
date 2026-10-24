@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  Brain,
   ClipboardList,
   FileSpreadsheet,
   Globe2,
@@ -54,6 +55,7 @@ export function DashboardSidebar({
   const canReview = ["ROOT", "PLATFORM_ADMIN"].includes(platformRole ?? "");
   const primary = tenantRole === "VETERINARIAN" ? [{ href: "/dashboard", label: "Inicio", icon: LayoutDashboard }, { href: "/veterinaria", label: "Sanidad", icon: Stethoscope }] : tenantRole === "ACCOUNTING" ? [{ href: "/dashboard", label: "Inicio", icon: LayoutDashboard }, { href: "/finanzas", label: "Finanzas", icon: Wallet }] : primaryItems;
   const secondary = [
+    {href:"/memoria",label:"Mi memoria inteligente",icon:Brain},
     ...(["TENANT_OWNER", "TENANT_ADMIN"].includes(tenantRole) ? [{ href: "/equipo", label: "Equipo y accesos", icon: Users }] : []),
     ...(canImport ? [{ href: "/imports", label: "Importar Excel", icon: FileSpreadsheet }] : []),
     ...(verificationEnabled ? [{ href: "/verification", label: "Verificación", icon: ShieldCheck }] : []),

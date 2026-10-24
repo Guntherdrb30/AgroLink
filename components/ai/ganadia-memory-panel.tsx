@@ -25,25 +25,24 @@ export function GanadiaMemoryPanel(){
   void refresh().catch(e=>{if(active)setError(String(e))}).finally(()=>{if(active)setLoading(false)});
   return()=>{active=false};
  },[refresh]);
- async function call(path:string,method:string,body?:unknown){
-  if(busy)return;setBusy(true);setNotice("");setError("");
+ async function call(path:string,method:string,body?:unknown):Promise<boolean>{
+  if(busy)return false;setBusy(true);setNotice("");setError("");
   try{
    const res=await fetch(path,{method,cache:"no-store",headers:body===undefined?undefined:{"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body)});
    const data=await res.json();
    if(!res.ok)throw Error(data.error||"La operación no pudo completarse");
    await refresh();setNotice("Cambios guardados.");
-  }catch(e){setError(e instanceof Error?e.message:"No fue posible guardar");}
+   return true;
+  }catch(e){setError(e instanceof Error?e.message:"No fue posible guardar");return false;}
   finally{setBusy(false);}
  }
  async function addPersonal(){
   if(!personal.trim())return;
-  await call(API,"POST",{scope:"personal",kind,content:personal,farmId:farmId||null});
-  setPersonal("");
+  if(await call(API,"POST",{scope:"personal",kind,content:personal,farmId:farmId||null}))setPersonal("");
  }
  async function addCompany(){
   if(!companyNote.trim())return;
-  await call(API,"POST",{scope:"organization",content:companyNote,farmId:companyFarm||null});
-  setCompanyNote("");
+  if(await call(API,"POST",{scope:"organization",content:companyNote,farmId:companyFarm||null}))setCompanyNote("");
  }
  async function suggestWithOpenAI(){
   if(busy||!form.enabled||!form.learnFromChat)return;
