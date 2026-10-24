@@ -79,7 +79,7 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
       ?defaultMinKg:450;
     if(st.minKg===undefined)st.minKg=minimum;
     const pools=await Promise.all(ctx.farms.map(async farm=>{
-      const herd=await candidates(ctx,{...st,farmId:farm.id});
+      const herd=await candidates(ctx,{...(st as State),farmId:farm.id});
       return {id:farm.id,name:farm.name,animals:herd};
     }));
     const result=compareAuthorizedFarmCapacity(pools,st.targetKg);
