@@ -10,6 +10,7 @@ import { GanadiaPilotBudgetError } from "@/lib/ai/ganadia-budget";
 import { inferGanadiaReadTools } from "@/lib/ai/ganadia-intent";
 import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-memory";
 import { handleGanadiaSaleFlow } from "@/lib/ai/ganadia-sale-flow";
+import { requestedMinimumWeightKg } from "@/lib/ai/ganadia-weight-intent";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const send = (value: unknown, status = 200) =>
@@ -39,9 +40,10 @@ export async function POST(request: Request) {
   if (!scopeFarmIds(farmId, ctx.farms.map(f => f.id))) {
     return send({ error: "No tienes permiso para esa finca." }, 403);
   }
-  const fromMessage = message.match(/\b(\d{2,4})(?:[.,]\d+)?\s*(?:kg|kilos?|kilogramos?)\b/i);
-  const weight = !topic && fromMessage ? Number(fromMessage[1]) :
-    typeof body.minWeightKg === "number" ? body.minWeightKg : 450;
+  const weight = requestedMinimumWeightKg(
+    topic ? "" : message,
+    typeof body.minWeightKg === "number" ? body.minWeightKg : 450,
+  );
   const requestedTools: AiToolName[] = topics[topic] ? [topics[topic]] : inferGanadiaReadTools(message);
   if (requestedTools.some(name => !isAuthorizedAiTool(role, name))) {
     return send({ error: "Tu perfil no tiene acceso a toda la información solicitada." }, 403);
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     keyPresent: Boolean(process.env.OPENAI_API_KEY),
   });
   try {
-    if(message){const flow=await handleGanadiaSaleFlow(ctx,message);if(flow)return send({...flow,farms:ctx.farms});}
+    if(message){const flow=await handleGanadiaSaleFlow(ctx,message,weight);if(flow)return send({...flow,farms:ctx.farms});}
     const chat = await beginGanadiaChatTurn(ctx);
     // The old deterministic assistant stays available without billable AI.
     if (!generative) {

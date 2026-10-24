@@ -101,6 +101,13 @@ export async function appendGanadiaChatTurn(
 ): Promise<boolean> {
   if (!userMessage.trim() || userMessage.length > 700 ||
       !assistantReply.trim() || assistantReply.length > 10000) {
+    // Safe diagnostics: never log the contents of a customer's chat.
+    console.error("GanadIA chat turn validation failed", {
+      userLength: userMessage.length,
+      replyLength: assistantReply.length,
+      userEmpty: !userMessage.trim(),
+      replyEmpty: !assistantReply.trim(),
+    });
     throw new Error("INVALID_CHAT_MESSAGE");
   }
   const key = identity(ctx);

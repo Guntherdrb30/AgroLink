@@ -27,6 +27,12 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
  const chat=await beginGanadiaChatTurn(ctx);
  const record=await prisma.ganadiaAiConversation.findUnique({where:{id:chat.id},select:{saleFlow:true}});
  let st=(record?.saleFlow&&typeof record.saleFlow==="object"&&!Array.isArray(record.saleFlow))?record.saleFlow as State:null;
+ // Reject malformed or obsolete persisted workflow stages before dispatch.
+ const validStages: readonly Stage[]=["farm","threshold","quantity","buyer","price","review"];
+ if(st&&(!validStages.includes(st.stage)||typeof st.key!=="string"||!st.key)){
+  console.warn("GanadIA invalid saved sale flow stage; restarting guided flow");
+  st=null;
+ }
  const normalized=normalize(message.trim()).replace(/[.!?]+$/,"");
  if(!st&&!start.test(normalized) && !(wantsFarmComparison(normalized)&&extractTargetKilograms(message,chat.history)!==null&&/\b(finca|fincas|ganado|guia|venta)\b/.test(normalized)))return null;
  if(!["TENANT_OWNER","TENANT_ADMIN","FARM_MANAGER"].includes(ctx.ctx.membership.role)){
@@ -153,8 +159,22 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
    }
   }
  }
+ // Never turn an incomplete old workflow into a failed chat save.
+ if(!reply.trim()){
+  console.error("GanadIA sale workflow produced no reply",{stage:st?.stage??"none",hasGoal:st?.targetKg!==undefined});
+  if(!st)st={stage:"farm",key:crypto.randomUUID()};
+  st.stage="farm";
+  st.farmId=undefined;
+  st.suggestedFarmId=undefined;
+  const remembered=st.targetKg??extractTargetKilograms(message,chat.history);
+  if(remembered!==null&&remembered!==undefined)st.targetKg=remembered;
+  reply=st.targetKg!==undefined
+   ?"Vamos a preparar tu guía interna de "+st.targetKg.toLocaleString("es-VE")+" kilos. ¿Quieres que compare tus fincas o prefieres elegir una?"
+   :"Vamos a preparar tu guía interna. ¿De cuál finca quieres sacar el ganado? También puedo comparar tus fincas.";
+ }
  const updated=await prisma.ganadiaAiConversation.updateMany({where:{id:chat.id,tenantId:ctx.ctx.tenant.id,userId:ctx.ctx.user.id,accessHash:scope(ctx),generation:chat.generation},data:{saleFlow:st?st as unknown as Prisma.InputJsonValue:Prisma.DbNull}});
  if(updated.count!==1)throw Error("CHAT_CLEARED_DURING_REQUEST");
- await appendGanadiaChatTurn(ctx,chat,message,reply);
+ const saved=await appendGanadiaChatTurn(ctx,chat,message,reply);
+ if(!saved)throw Error("CHAT_CLEARED_DURING_REQUEST");
  return {reply,mode:"workflow",...(draft?{saleDraft:draft}:{})};
 }
