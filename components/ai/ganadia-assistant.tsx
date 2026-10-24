@@ -30,6 +30,7 @@ export function GanadiaAssistant({
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [message, setMessage] = useState("");
+  const [offerSales, setOfferSales] = useState(false);
   const [farmId, setFarmId] = useState("");
   const [farms, setFarms] = useState<Farm[]>([]);
   const [busy, setBusy] = useState(false);
@@ -138,6 +139,7 @@ export function GanadiaAssistant({
     setErrorText("");
     setBusy(true);
     setOptionsOpen(false);
+    setOfferSales(/\b(venta|vender|vend[eo]|vendemos|gu[ií]a|comercializar|preselecci[oó]n)\b/i.test(value));
     setMessages(existing => [...existing, { id: temporaryId, by: "user", text: value }]);
     try {
       const response = await fetch(CHAT_PATH, {
@@ -285,6 +287,11 @@ export function GanadiaAssistant({
                       {entry.text}
                     </div>
                   ))}
+                  {offerSales && !busy && (
+                    <a href="/ventas" className="ml-auto flex w-fit items-center rounded-xl border border-[#b7ceb6] bg-[#e9f2e7] px-4 py-3 text-sm font-semibold text-[#244f34]">
+                      Preparar comprobante interno de venta
+                    </a>
+                  )}
                   {busy && (
                     <p className="flex items-center gap-2 py-2 text-sm text-[#607361]">
                       <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
