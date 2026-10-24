@@ -2,6 +2,7 @@ import type { FileCategory, FileUsage, FileVisibility } from "@prisma/client";
 
 export type UploadUsageKey =
   | "verification_document"
+  | "sale_permit"
   | "livestock_image"
   | "listing_image"
   | "import_file"
@@ -21,6 +22,7 @@ type UploadProfile = {
 };
 
 export const uploadProfiles: Record<UploadUsageKey, UploadProfile> = {
+  sale_permit: { usage:"SALE_PERMIT",category:"DOCUMENT",visibility:"PRIVATE",maxSizeBytes:15*1024*1024,allowedMimeTypes:["application/pdf","image/jpeg","image/png","image/webp"],pathSegment:"sales/insai-permits" },
   verification_document: {
     usage: "VERIFICATION_DOCUMENT",
     category: "DOCUMENT",
