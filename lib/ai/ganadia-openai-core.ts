@@ -29,6 +29,7 @@ export type GanadiaConversationInput = {
   selectedFarmId: string | null; minWeightKg: number;
   preloaded?: ReadonlyArray<{ name: GanadiaToolName; text: string }>;
   history?: ReadonlyArray<{ role: "user" | "assistant"; content: string }>;
+  personalizationContext?: string;
 };
 export type GanadiaConversationDeps = {
   invoke: (body: GanadiaModelRequest) => Promise<GanadiaModelResponse>;
@@ -88,6 +89,7 @@ function requestBase(input: GanadiaConversationInput): GanadiaModelRequest {
     "Consejos veterinarios o económicos son orientativos; si hay urgencia indica consultar al profesional correspondiente.",
     "No muestres datos de otras empresas, fincas o roles. No inventes acceso denegado.",
     "Rol autorizado: " + input.role + ". Fincas accesibles: " + farms + ".",
+    input.personalizationContext?.slice(0,2350) || "",
     "Finca seleccionada (null significa todas las autorizadas): " + JSON.stringify(input.selectedFarmId) + ".",
     "Peso mínimo sugerido: " + input.minWeightKg + " kg.",
     "Si el usuario pregunta algo general, puedes responder con conocimiento general indicando que no procede de registros de su finca.",

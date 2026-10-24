@@ -11,6 +11,7 @@ import { inferGanadiaReadTools } from "@/lib/ai/ganadia-intent";
 import { beginGanadiaChatTurn, appendGanadiaChatTurn } from "@/lib/ai/ganadia-memory";
 import { handleGanadiaSaleFlow } from "@/lib/ai/ganadia-sale-flow";
 import { requestedMinimumWeightKg } from "@/lib/ai/ganadia-weight-intent";
+import {getEliteModelContext,observeEliteUsage} from "@/lib/ai/ganadia-elite-memory";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const send = (value: unknown, status = 200) =>
@@ -54,7 +55,13 @@ export async function POST(request: Request) {
     keyPresent: Boolean(process.env.OPENAI_API_KEY),
   });
   try {
-    if(message){const flow=await handleGanadiaSaleFlow(ctx,message,weight);if(flow)return send({...flow,farms:ctx.farms});}
+    if(message){
+      const flow=await handleGanadiaSaleFlow(ctx,message,weight);
+      if(flow){
+        await observeEliteUsage(ctx,message).catch(err=>console.error("GanadIA memory learning unavailable",err instanceof Error?err.name:"unknown"));
+        return send({...flow,farms:ctx.farms});
+      }
+    }
     const chat = await beginGanadiaChatTurn(ctx);
     // The old deterministic assistant stays available without billable AI.
     if (!generative) {
@@ -64,16 +71,19 @@ export async function POST(request: Request) {
       });
       const summaries = await Promise.all(requestedTools.map(name => runAiTool(ctx, name, { farmId, minWeightKg: weight })));
       const reply = summaries.map(item => item.text).join("\n\n");
-      await appendGanadiaChatTurn(ctx, chat, message, reply);
+      const saved=await appendGanadiaChatTurn(ctx, chat, message, reply);
+      if(!saved)return send({error:"La conversación cambió durante la respuesta."},409);
+      await observeEliteUsage(ctx,message).catch(err=>console.error("GanadIA memory learning unavailable",err instanceof Error?err.name:"unknown"));
       return send({ reply, tool: requestedTools[0], farms: ctx.farms, mode: "asistido" });
     }
     if (!message) return send({ error: "Escribe una consulta." }, 422);
     const preloaded = await Promise.all(requestedTools.map(async name => ({
       name, text: (await runAiTool(ctx, name, { farmId, minWeightKg: weight })).text,
     })));
+    const personalizationContext=await getEliteModelContext(ctx,farmId);
     const result = await converseGanadia({
       message, role, farms: ctx.farms, allowedTools: allowed,
-      selectedFarmId: farmId, minWeightKg: weight, preloaded, history: chat.history,
+      selectedFarmId: farmId, minWeightKg: weight, preloaded, history: chat.history, personalizationContext,
     }, {
       invoke: payload => invokeGanadiaPilotedOpenAI({
         tenantId: ctx.ctx.tenant.id, userId: ctx.ctx.user.id,
@@ -82,6 +92,7 @@ export async function POST(request: Request) {
     });
     const saved = await appendGanadiaChatTurn(ctx, chat, message, result.reply);
     if (!saved) return send({ error: "La conversación se limpió mientras se generaba la respuesta. No se guardó el mensaje." }, 409);
+    await observeEliteUsage(ctx,message).catch(err=>console.error("GanadIA memory learning unavailable",err instanceof Error?err.name:"unknown"));
     return send({ ...result, farms: ctx.farms, mode: "generativo" });
   } catch (e) {
     if (e instanceof GanadiaPilotBudgetError) {

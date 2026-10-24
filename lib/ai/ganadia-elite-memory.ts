@@ -132,7 +132,7 @@ export async function getEliteModelContext(ctx:AiContext,farmId:string|null):Pro
  const key=ids(ctx);
  const baseName=(ctx.ctx.user.name||"").trim().split(/\s+/)[0]||null;
  const pref=await prisma.ganadiaAiMemorySettings.findUnique({where:{tenantId_userId:key}});
- const display=pref?.preferredName||baseName;
+ const display=pref?.enabled?pref.preferredName||baseName:baseName;
  if(!pref?.enabled)return renderMemoryForModel({firstName:display,companyName:ctx.ctx.tenant.name,style:"BALANCED",memories:[],companyMemories:[]});
  const permitted=farms(ctx);
  const filteredFarm=farmId&&permitted.includes(farmId)?[farmId]:permitted;

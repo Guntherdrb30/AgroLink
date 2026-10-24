@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Bot, X, Send, LoaderCircle, ShieldCheck, Sparkles,
+  Bot, X, Send, LoaderCircle, ShieldCheck, Sparkles, Brain,
   Trash2, SlidersHorizontal, ChevronDown, ChevronUp, MessageSquareText,
 } from "lucide-react";
 
@@ -11,6 +11,7 @@ type Farm = { id: string; name: string };
 type ChatHistory = {
   messages: Msg[];
   farms: Farm[];
+  name?: string | null;
   hasMore: boolean;
   nextCursor: string | null;
 };
@@ -29,6 +30,7 @@ export function GanadiaAssistant({
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [verifiedName,setVerifiedName]=useState<string|null>(null);
   const [message, setMessage] = useState("");
   const [saleDraft,setSaleDraft]=useState<{id:string;url:string;count:number;kg:number}|null>(null);
   const [farmId, setFarmId] = useState("");
@@ -76,6 +78,7 @@ export function GanadiaAssistant({
         if (controller.signal.aborted) return;
         setMessages(data.messages || []);
         setFarms(data.farms || []);
+        setVerifiedName(data.name?.trim().split(/\s+/)[0]||null);
         setHasMore(Boolean(data.hasMore));
         setCursor(data.nextCursor || null);
         previousLength.current = 0;
@@ -213,8 +216,9 @@ export function GanadiaAssistant({
                 <Sparkles className="size-7 shrink-0 text-[#e9d49c]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-lg font-semibold leading-tight">GanadIA AI</h2>
-                  <p className="mt-0.5 text-xs text-white/80">Tu asistente ganadero</p>
+                  <p className="mt-0.5 text-xs text-white/80">Tu asistente ganadero, con memoria bajo tu control</p>
                 </div>
+                <a href="/memoria" onClick={()=>setOpen(false)} title="Mi memoria inteligente" aria-label="Gestionar memoria inteligente" className="flex size-10 shrink-0 items-center justify-center rounded-xl hover:bg-white/15"><Brain className="size-[20px]" aria-hidden="true"/></a>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(true)}
@@ -272,7 +276,7 @@ export function GanadiaAssistant({
                   {messages.length === 0 && (
                     <div className="mx-auto mt-7 max-w-[340px] space-y-3 rounded-2xl bg-[#eff5ed] p-5 text-center text-[#274431]">
                       <MessageSquareText className="mx-auto size-8 text-[#50765b]" aria-hidden="true" />
-                      <p className="text-[15px] leading-6">{HELLO}</p>
+                      <p className="text-[15px] leading-6">{verifiedName?"¡Hola, "+verifiedName+"! Soy GanadIA. Puedo ayudarte con tus fincas, ganado y administración. ¿Qué necesitas revisar hoy?":HELLO}</p>
                     </div>
                   )}
                   {messages.map((entry, i) => (

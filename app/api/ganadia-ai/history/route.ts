@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   try {
     const before = new URL(request.url).searchParams.get("before");
     const page = await getGanadiaChatPage(ctx, before);
-    return reply({ ...page, farms: ctx.farms });
+    return reply({ ...page, farms: ctx.farms, name:ctx.ctx.user.name||null });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_CHAT_CURSOR") {
       return reply({ error: "No se encontró esa página de la conversación." }, 400);
