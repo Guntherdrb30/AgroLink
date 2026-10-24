@@ -85,7 +85,8 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
     const result=compareAuthorizedFarmCapacity(pools,st.targetKg);
     st.suggestedFarmId=result.recommendedId??undefined;
     const format=(n:number)=>n.toLocaleString("es-VE",{maximumFractionDigits:2});
-    const lines=result.farms.map(f=>f.name+": "+f.count+" animales de al menos "+st.minKg+
+    const minimumSnapshot=st.minKg;
+    const lines=result.farms.map(f=>f.name+": "+f.count+" animales de al menos "+minimumSnapshot+
       " kg, "+format(f.availableKg)+" kg disponibles."+
       (f.canMeetTarget?" Sí alcanza.":" No alcanza."));
     if(result.recommendedId){
