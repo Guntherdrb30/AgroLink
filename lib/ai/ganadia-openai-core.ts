@@ -2,7 +2,7 @@
 import { selectGanadiaModelHistory } from "./ganadia-memory-policy.ts";
 export type GanadiaToolName =
   | "listar_fincas" | "resumen_ganado" | "resumen_sanidad"
-  | "resumen_finanzas" | "preseleccionar_venta";
+  | "resumen_finanzas" | "preseleccionar_venta" | "analizar_pesajes";
 export type GanadiaAiFarm = { id: string; name: string };
 export type GanadiaModelResponse = {
   status?: string;
@@ -43,7 +43,8 @@ const TOOL_DESCRIPTIONS: Record<GanadiaToolName, string> = {
   resumen_ganado: "Consulta cantidad y pesos registrados del ganado en fincas autorizadas.",
   resumen_sanidad: "Resume estados sanitarios y registros de vacunación vencidos, sin diagnosticar.",
   resumen_finanzas: "Resume movimientos ERP por moneda; no calcula ganancias netas.",
-  preseleccionar_venta: "Selecciona ganado por peso mínimo registrado; nunca vende ni reserva.",
+  preseleccionar_venta: "Compara peso de la última pesada fechada, peso de ficha, ganancia diaria histórica y proyección a 30 días; muestra candidatos por kilo mínimo sin vender ni reservar.",
+  analizar_pesajes: "Consulta los últimos trabajos de llano con pesaje y evolución individual de los pesos; calcula ganancia diaria observada y proyección no garantizada.",
 };
 function toolDefinition(name: GanadiaToolName): Record<string, unknown> {
   return {
@@ -94,6 +95,8 @@ function requestBase(input: GanadiaConversationInput): GanadiaModelRequest {
     "Si hay varias herramientas verificadas, sintetiza sus resultados en una sola respuesta e indica limitaciones de los datos cuando corresponda.",
     "Evita Markdown (asteriscos, tablas o encabezados con #); la interfaz muestra texto plano.",
     "La conversación anterior ayuda a comprender referencias como esos animales, esa finca o el mismo peso. Nunca uses cifras previas como si fueran datos ERP actualizados: vuelve a consultar el ERP cuando corresponda.",
+    "Para preguntas de peso mínimo, engorde, venta o último trabajo de llano: distingue explícitamente último peso fechado, peso actual de ficha sin pesaje confirmado y proyección matemática. No confundas los totales.",
+    "Nunca afirmes que falta detalle individual si la herramienta ha proporcionado pesajes individuales. La proyección nunca confirma que un animal ya está apto para comercializarse; requiere evaluación sanitaria y pesaje nuevo.",
   ].join("\n");
   return {
     model: "gpt-5.4-mini", instructions,

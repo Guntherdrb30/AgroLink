@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {allowedAiTools,isAuthorizedAiTool,scopeFarmIds,isPaidAiEnabled} from "../lib/ai/ganadia-policy.ts";
 test("owner and administrator can use all read tools",()=>{
- for(const role of ["TENANT_OWNER","TENANT_ADMIN"])assert.equal(allowedAiTools(role).length,5);
+ for(const role of ["TENANT_OWNER","TENANT_ADMIN"])assert.equal(allowedAiTools(role).length,6);
 });
 test("accountant cannot access livestock or health",()=>{
  assert.deepEqual(allowedAiTools("ACCOUNTING"),["listar_fincas","resumen_finanzas"]);

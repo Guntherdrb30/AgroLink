@@ -8,6 +8,7 @@ export const aiTools = [
   "resumen_sanidad",
   "resumen_finanzas",
   "preseleccionar_venta",
+  "analizar_pesajes",
 ] as const;
 export type AiToolName = typeof aiTools[number];
 
@@ -17,7 +18,7 @@ export function allowedAiTools(role: string): AiToolName[] {
   if (globalReaders.includes(role)) return [...aiTools];
   if (role === "ACCOUNTING") return ["listar_fincas", "resumen_finanzas"];
   if (role === "VETERINARIAN") return ["listar_fincas", "resumen_sanidad"];
-  if (livestockReaders.includes(role)) return ["listar_fincas", "resumen_ganado", "resumen_sanidad", "preseleccionar_venta"];
+  if (livestockReaders.includes(role)) return ["listar_fincas", "resumen_ganado", "resumen_sanidad", "preseleccionar_venta", "analizar_pesajes"];
   return [];
 }
 export function isAuthorizedAiTool(role: string, tool: string): tool is AiToolName {

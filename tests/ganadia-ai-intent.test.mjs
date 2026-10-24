@@ -44,3 +44,13 @@ test("general livestock advice can enrich with authorized real records", () => {
 test("unrecognized generic question remains conversational and cannot infer unrestricted tools", () => {
   assert.deepEqual(inferGanadiaReadTools("Hola, ¿puedes explicarme cómo funciona el sistema?"), []);
 });
+
+
+test("follow-up asking for 450 kilos or more selects individual-weight eligibility", () => {
+  assert.deepEqual(inferGanadiaReadTools("¿Y cuántos de esos animales tienen 450 kilos o más?"), ["preseleccionar_venta"]);
+  assert.deepEqual(inferGanadiaReadTools("Cuántos animales pesan más de 500 kilogramos"), ["preseleccionar_venta"]);
+});
+
+test("last cattle work and daily/monthly weight gain fetch history", () => {
+  assert.deepEqual(inferGanadiaReadTools("¿Qué sabemos del último trabajo de llano y la ganancia diaria del ganado?"), ["resumen_ganado","analizar_pesajes"]);
+});

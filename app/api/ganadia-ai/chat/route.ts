@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   if (!scopeFarmIds(farmId, ctx.farms.map(f => f.id))) {
     return send({ error: "No tienes permiso para esa finca." }, 403);
   }
-  const fromMessage = message.match(/(?:m[aá]s de|al menos|m[ií]nimo|desde)\s*(\d{1,4})\s*(?:kg|kilos)/i);
+  const fromMessage = message.match(/\b(\d{2,4})(?:[.,]\d+)?\s*(?:kg|kilos?|kilogramos?)\b/i);
   const weight = !topic && fromMessage ? Number(fromMessage[1]) :
     typeof body.minWeightKg === "number" ? body.minWeightKg : 450;
   const requestedTools: AiToolName[] = topics[topic] ? [topics[topic]] : inferGanadiaReadTools(message);

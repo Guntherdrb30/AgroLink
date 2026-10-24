@@ -14,11 +14,15 @@ export function inferGanadiaReadTools(message: string): AiToolName[] {
   const animalMetrics = /\b(peso|pesos|pesaje|promedio de peso|kg|kilogramos?|kilos|cabezas|recuento|numero de animales|total de animales|cantidad de animales|cuantos animales|cuantas reses)\b/.test(text);
   const animals = /\b(ganado|animales|animal|reses|res|vacas|vaca|novillos|novillo|toros|toro|becerros|becerro|terneros|ternero|vientres|rebanos|rebano)\b/.test(text);
   const farms = /\b(finca|fincas|hato|hatos|fundacion|fundaciones)\b/.test(text);
+  const operationHistory = /\b(trabajo de llano|trabajos de llano|jornada de llano|jornadas de llano|jornada de pesaje|ultimo pesaje|ultimos pesajes|ultima pesada|pesajes anteriores|historial de pesajes|ganancia diaria|ganancia mensual|ganancia de peso|engorde|engordando|ganando peso|proyeccion|proyectar|estimacion de peso|estimar peso|cuanto han aumentado|cuanto ha aumentado)\b/.test(text);
+  const explicitKgThreshold = /\b\d{2,4}(?:[.,]\d+)?\s*(?:kg|kilos?|kilogramos?)(?:\s+(?:o|y)\s+mas)?\b/.test(text) &&
+    /\b(animales?|ganado|vacas?|reses|toros?|pesan|tienen|cabezas|cuantos|cuantas|venta|vender|listos?|mayores?|superan)\b/.test(text);
   const requested: AiToolName[] = [];
-  if (animalMetrics || (animals && !health && !sales)) requested.push("resumen_ganado");
+  if ((animalMetrics || animals) && !explicitKgThreshold && !sales && !health) requested.push("resumen_ganado");
   if (health) requested.push("resumen_sanidad");
   if (finance) requested.push("resumen_finanzas");
-  if (sales) requested.push("preseleccionar_venta");
+  if (sales || explicitKgThreshold) requested.push("preseleccionar_venta");
+  if (operationHistory) requested.push("analizar_pesajes");
   if (farms) requested.push("listar_fincas");
   return requested;
 }
