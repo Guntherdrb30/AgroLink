@@ -13,6 +13,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
  const [buyer,setBuyer]=useState("");
  const [document,setDocument]=useState("");
  const [destination,setDestination]=useState("");
+ const [guideData,setGuideData]=useState<Record<string,string>>({});
  const [currency,setCurrency]=useState("USD");
  const [price,setPrice]=useState("2.50");
  const [notes,setNotes]=useState("");
@@ -38,7 +39,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
    if(!Number.isSafeInteger(p)||p<0||!buyer.trim())throw Error("Indica comprador y precio por kg.");
    const r=await fetch("/api/livestock-sales",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     farmId,buyerName:buyer,buyerDocument:document,destination,animalIds:selected,
-    pricePerKgCents:p,currency,notes,requestKey:key,saleDate:new Date().toISOString(),
+    pricePerKgCents:p,currency,notes,guideData,requestKey:key,saleDate:new Date().toISOString(),
    })});
    const x=await r.json();if(!r.ok)throw Error(x.error||"No se pudo crear el borrador.");
    const d=await fetch("/api/livestock-sales/"+x.id,{cache:"no-store"});const response=await d.json();
@@ -99,6 +100,7 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
      <select className={input} value={currency} onChange={e=>setCurrency(e.target.value)}><option value="USD">USD</option><option value="VES">Bolívares (VES)</option></select>
     </label>
    </div>
+   <div className="rounded-xl border bg-[#f5f8f4] p-4"><h3 className="mb-3 font-semibold text-[#244a33]">Información para la guía premium</h3><div className="grid gap-3 sm:grid-cols-2">{([["buyerAddress","Dirección fiscal del comprador"],["buyerPhone","Teléfono"],["buyerEmail","Correo"],["buyerContact","Persona de contacto"],["destinationAddress","Dirección destino"],["originOwner","Propietario finca"],["originDocument","RIF o cédula emisor"],["originAddress","Dirección de origen"],["originPhone","Teléfono finca"],["farmIron","Código del hierro"],["plannedDeparture","Fecha prevista de salida"],["plannedTime","Hora"],["route","Ruta"],["vehicle","Vehículo"],["vehiclePlate","Placa"],["driverName","Conductor"],["driverDocument","Cédula conductor"],["driverPhone","Teléfono conductor"],["healthNotes","Observación sanitaria"],["paymentTerms","Condición de pago"]] as const).map(([k,label])=><label key={k} className="text-xs font-semibold">{label}<input value={guideData[k]||""} onChange={e=>setGuideData(o=>({...o,[k]:e.target.value}))} maxLength={350} className={input} /></label>)}</div><p className="mt-3 text-xs text-[#5b6e60]">Puedes preparar el borrador con campos pendientes. Verifica la información antes de autorizar y transportar ganado.</p></div>
    <label className="block text-sm font-semibold">Observaciones
     <textarea className={input+" py-3"} rows={2} maxLength={1000} value={notes} onChange={e=>setNotes(e.target.value)}/>
    </label>
