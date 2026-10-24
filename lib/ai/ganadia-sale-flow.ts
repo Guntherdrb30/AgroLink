@@ -49,7 +49,7 @@ export async function handleGanadiaSaleFlow(ctx:AiContext,message:string,default
      : namesInMessage.length===1 && !wantsFarmComparison(normalized)
        ? namesInMessage[0]
        : st.suggestedFarmId && acceptsRecommendedFarm(message)
-         ? ctx.farms.find(f=>f.id===st.suggestedFarmId)
+         ? ctx.farms.find(f=>f.id===st?.suggestedFarmId)
          : ctx.farms.length===1 && !comparisonRequested
            ? ctx.farms[0]
            : undefined;
