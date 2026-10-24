@@ -26,11 +26,26 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
  const [permitNo,setPermitNo]=useState("");
  const [file,setFile]=useState<File|null>(null);
  const [search,setSearch]=useState("");
+ const [ironCode,setIronCode]=useState("");
+ const [ironFile,setIronFile]=useState<File|null>(null);
  const available=useMemo(()=>animals.filter(a=>a.farmId===farmId&&(!search||a.code.toLowerCase().includes(search.toLowerCase()))),[animals,farmId,search]);
  const chosen=useMemo(()=>animals.filter(a=>selected.includes(a.id)),[animals,selected]);
  const totalKg=chosen.reduce((sum,a)=>sum+Number(a.weightKg||0),0);
  const load=useCallback(async()=>{try{const r=await fetch("/api/livestock-sales",{cache:"no-store"});if(r.ok)setSales((await r.json()).sales||[]);}catch{}},[]);
  useEffect(()=>{void load()},[load]);
+ async function saveIron(){
+  if(!canEdit||pending||!farmId)return;
+  setPending(true);setError("");
+  try{
+   const data=new FormData();data.set("ironCode",ironCode);
+   if(ironFile)data.set("file",ironFile);
+   const r=await fetch("/api/farms/"+encodeURIComponent(farmId)+"/iron",{method:"POST",body:data});
+   const response=await r.json();
+   if(!r.ok)throw Error(response.error||"No se pudo guardar el hierro");
+   setMessage("Hierro de la finca guardado para los próximos comprobantes.");setIronFile(null);
+  }catch(error){setError(error instanceof Error?error.message:"Error");}
+  finally{setPending(false);}
+ }
  async function create(){
   if(!canEdit||pending||!farmId||!selected.length)return;
   setPending(true);setError("");setMessage("");
@@ -80,6 +95,16 @@ export function SalesClient({farms,animals,canEdit}:{farms:Farm[];animals:Animal
   {message&&<p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{message}</p>}
   {canEdit&&<section className="space-y-4 rounded-3xl border bg-white p-4 sm:p-6">
    <h2 className="text-xl font-bold text-[#27432d]">Preparar venta</h2>
+   <div className="space-y-3 rounded-xl border bg-[#f5f8f4] p-4">
+    <h3 className="font-semibold text-[#244a33]">Hierro de la finca (opcional)</h3>
+    <label className="block text-xs font-semibold">Identificación del hierro
+      <input className={input} value={ironCode} maxLength={80} onChange={e=>setIronCode(e.target.value)} placeholder="Código de hierro"/>
+    </label>
+    <label className="block text-xs font-semibold">Imagen del hierro (PNG/JPEG)
+      <input type="file" accept=".png,.jpg,.jpeg" className={input} onChange={e=>setIronFile(e.target.files?.[0]||null)}/>
+    </label>
+    <button type="button" disabled={pending||(!ironCode.trim()&&!ironFile)} onClick={()=>void saveIron()} className="rounded-xl border border-[#a8baa8] px-4 py-2 text-sm font-semibold disabled:opacity-40">Guardar hierro</button>
+   </div>
    <div className="grid gap-3 sm:grid-cols-2">
     <label className="text-sm font-semibold">Finca
      <select className={input} value={farmId} onChange={e=>{setFarmId(e.target.value);setSelected([])}}>{farms.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
